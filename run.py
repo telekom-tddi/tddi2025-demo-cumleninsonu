@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""
+Run script for the Call Center Chatbot System.
+This script provides a convenient way to run the different components of the call center system.
+"""
+
+import os
+import sys
+import argparse
+import subprocess
+import time
+from pathlib import Path
+
+# Add the current directory to Python path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+
+# Filter out env directories for watchfiles
+ignore_dirs = [
+    "venv",
+    "rag_venv_clean",
+    "data",
+    "__pycache__",
+    ".git"
+]
+
+def setup_environment():
+    """Set up the environment for the call center system."""
+    # Create cache directory
+    cache_dir = os.path.join(BASE_DIR, ".cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    print("✅ Cache directory created")
+    
+    # Check if required environment variables are set
+    required_vars = ["HUGGINGFACE_TOKEN"]
+    missing_vars = []
+    
+    for var in required_vars:
+        if not os.getenv(var):
+            missing_vars.append(var)
+    
+    if missing_vars:
+        print(f"⚠️  Warning: Missing environment variables: {', '.join(missing_vars)}")
+        print("   Please set these in your .env file or environment")
+        print("   HUGGINGFACE_TOKEN is required for model access")
+    else:
+        print("✅ Environment variables configured")
+
+def test_functions():
+    """Test the call center functions."""
+    print("🧪 Testing call center functions...")
+    
+    try:
+        # Import and test basic function calling
+        from src.functions.function_caller import FunctionCaller
+        from src.functions.call_center_functions import get_available_packages, get_customer_info
+        
+        # Test function caller
+        function_caller = FunctionCaller()
+        print(f"   ✅ Function caller initialized with {len(function_caller.registry)} functions")
+        
+        # Test a simple function
+        result = get_available_packages()
+        if result["success"]:
+            print(f"   ✅ get_available_packages: {len(result['data'])} packages available")
+        
+        # Test customer lookup
+        result = get_customer_info("customer_001")
+        if result["success"]:
+            print(f"   ✅ get_customer_info: Found customer {result['data']['name']}")
+        
+        print("✅ Function tests completed successfully")
+        
+    except Exception as e:
+        print(f"❌ Function test failed: {e}")
+        return False
+    
+    return True
+
+def run_call_center_api():
+    """Run the call center FastAPI backend."""
+    print("🚀 Starting Call Center API...")
+    
+    # Use uvicorn directly to run the call center API
+    cmd = ["uvicorn", "src.api.call_center_api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    print(f"Running: {' '.join(cmd)}")
+    return subprocess.Popen(cmd, env=dict(os.environ, PYTHONPATH=BASE_DIR))
+
+def run_call_center_webapp():
+    """Run the call center Streamlit web application."""
+    print("🌐 Starting Call Center Web Interface...")
+    cmd = ["streamlit", "run", "webapp/call_center_app.py", "--server.port", "8501"]
+    print(f"Running: {' '.join(cmd)}")
+    return subprocess.Popen(cmd, env=dict(os.environ, PYTHONPATH=BASE_DIR))
+
+def check_health():
+    """Check the health of running services."""
+    import requests
+    import time
+    
+    print("🔍 Checking service health...")
+    
+    # Wait a moment for services to start
+    time.sleep(2)
+    
+    # Check API health
+    try:
+        response = requests.get("http://localhost:8000/health", timeout=5)
+        if response.status_code == 200:
+            health_data = response.json()
+            mode = health_data.get("mode", "unknown")
+            functions = health_data.get("available_functions", 0)
+            print(f"   ✅ API is healthy (mode: {mode}, functions: {functions})")
+        else:
+            print(f"   ⚠️  API returned status {response.status_code}")
+    except Exception as e:
+        print(f"   ❌ API health check failed: {e}")
+    
+    # Check if Streamlit is running (basic check)
+    try:
+        response = requests.get("http://localhost:8501", timeout=5)
+        if response.status_code == 200:
+            print("   ✅ Web interface is accessible")
+        else:
+            print(f"   ⚠️  Web interface returned status {response.status_code}")
+    except Exception as e:
+        print(f"   ❌ Web interface check failed: {e}")
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(description="Run the Call Center Chatbot System")
+    
+    # Call center commands
+    parser.add_argument("--setup", action="store_true", help="Set up the call center environment")
+    parser.add_argument("--test", action="store_true", help="Test call center functions")
+    parser.add_argument("--api", action="store_true", help="Run the call center API")
+    parser.add_argument("--webapp", action="store_true", help="Run the call center web interface")
+    parser.add_argument("--all", action="store_true", help="Run complete call center system")
+    parser.add_argument("--health", action="store_true", help="Check service health")
+    
+    args = parser.parse_args()
+    
+    # If no arguments provided, show help and run the default call center system
+    if not any(vars(args).values()):
+        print("🤖 Call Center Chatbot System")
+        print("=" * 50)
+        parser.print_help()
+        print("\n" + "=" * 50)
+        print("No arguments provided. Starting complete call center system...")
+        args.all = True
+    # Test functions
+    if args.test or args.all:
+        if not test_functions():
+            print("❌ Function tests failed. Please check your setup.")
+            return
+    
+    # Health check only
+    if args.health:
+        check_health()
+        return
+    
+    # Run services
+    processes = []
+    try:
+        # Call center system
+        if args.api or args.all:
+            api_process = run_call_center_api()
+            processes.append(api_process)
+            print("⏳ Waiting for API to start...")
+            time.sleep(5)  # Give API more time to load models
+        
+        if args.webapp or args.all:
+            webapp_process = run_call_center_webapp()
+            processes.append(webapp_process)
+            time.sleep(2)
+        
+        
+        # Show status and URLs
+        if processes:
+            print("\n" + "=" * 60)
+            print("🎉 Call Center Chatbot System is running!")
+            print("=" * 60)
+            
+            if args.api or args.all:
+                print("📋 Call Center API: http://localhost:8000")
+                print("📖 API Documentation: http://localhost:8000/docs")
+            
+            if args.webapp or args.all:
+                print("💬 Call Center Chat: http://localhost:8501")
+            
+            print("=" * 60)
+            
+            # Run health check
+            if args.all or args.api or args.webapp:
+                check_health()
+            
+            print("\n✅ Press Ctrl+C to stop all services")
+            print("\n💡 Try these sample queries:")
+            print("   • 'Check my account for customer_001'")
+            print("   • 'What packages are available?'")
+            print("   • 'I want to upgrade to premium'")
+            print("   • 'Check my billing status'")
+            
+            # Keep running until interrupted
+            for p in processes:
+                p.wait()
+                
+    except KeyboardInterrupt:
+        print("\n🛑 Shutting down services...")
+        for p in processes:
+            try:
+                p.terminate()
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                p.kill()
+        print("✅ All services stopped")
+
+if __name__ == "__main__":
+    main() 
