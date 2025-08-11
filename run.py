@@ -77,6 +77,35 @@ def test_functions():
     
     return True
 
+def test_translator():
+    """Test the translator."""
+    print("🗣️ Testing translator...")
+    try:
+        from src.translator.translator import Translator
+        translator = Translator()
+        
+        english_text = "Hello, how are you?"
+        turkish_text = translator.translate_en_to_tr(english_text)
+        if turkish_text:
+            print(f"   ✅ EN->TR Translation successful: '{english_text}' -> '{turkish_text}'")
+        else:
+            print("   ❌ EN->TR Translation failed.")
+            return False
+
+        turkish_text_2 = "Bugün hava çok güzel."
+        english_text_2 = translator.translate_tr_to_en(turkish_text_2)
+        if english_text_2:
+             print(f"   ✅ TR->EN Translation successful: '{turkish_text_2}' -> '{english_text_2}'")
+        else:
+            print("   ❌ TR->EN Translation failed.")
+            return False
+            
+        print("✅ Translator tests completed successfully")
+        return True
+    except Exception as e:
+        print(f"❌ Translator test failed: {e}")
+        return False
+
 def run_call_center_api():
     """Run the call center FastAPI backend."""
     print("🚀 Starting Call Center API...")
@@ -126,6 +155,44 @@ def check_health():
     except Exception as e:
         print(f"   ❌ Web interface check failed: {e}")
 
+def clean_cache():
+    """Clean corrupted cache files and lock files."""
+    print("🧹 Cleaning cache...")
+    
+    cache_dir = os.path.join(BASE_DIR, ".cache")
+    locks_dir = os.path.join(cache_dir, ".locks")
+    
+    try:
+        # Check if cache exists
+        if not os.path.exists(cache_dir):
+            print("   ✅ No cache directory found")
+            return
+        
+        # Remove lock files
+        if os.path.exists(locks_dir):
+            import shutil
+            print("   🗑️  Removing lock files...")
+            shutil.rmtree(locks_dir, ignore_errors=True)
+            print("   ✅ Lock files removed")
+        
+        # Count cached models
+        model_dirs = [d for d in os.listdir(cache_dir) if d.startswith("models--")]
+        if model_dirs:
+            print(f"   📁 Found {len(model_dirs)} cached model(s)")
+            for model_dir in model_dirs:
+                model_path = os.path.join(cache_dir, model_dir)
+                size = sum(os.path.getsize(os.path.join(dirpath, filename))
+                          for dirpath, dirnames, filenames in os.walk(model_path)
+                          for filename in filenames) / (1024**3)  # GB
+                print(f"      - {model_dir}: {size:.2f} GB")
+        else:
+            print("   📭 No cached models found")
+        
+        print("   ✅ Cache cleanup completed")
+        
+    except Exception as e:
+        print(f"   ❌ Cache cleanup failed: {e}")
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Run the Call Center Chatbot System")
@@ -137,6 +204,7 @@ def main():
     parser.add_argument("--webapp", action="store_true", help="Run the call center web interface")
     parser.add_argument("--all", action="store_true", help="Run complete call center system")
     parser.add_argument("--health", action="store_true", help="Check service health")
+    parser.add_argument("--clean-cache", action="store_true", help="Clean corrupted cache and lock files")
     
     args = parser.parse_args()
     
@@ -153,10 +221,18 @@ def main():
         if not test_functions():
             print("❌ Function tests failed. Please check your setup.")
             return
+        if not test_translator():
+            print("❌ Translator tests failed. Please check your setup.")
+            return
     
     # Health check only
     if args.health:
         check_health()
+        return
+    
+    # Clean cache only
+    if args.clean_cache:
+        clean_cache()
         return
     
     # Run services
@@ -191,7 +267,7 @@ def main():
             print("=" * 60)
             
             # Run health check
-            if args.all or args.api or args.webapp:
+            if args.all or args.webapp:
                 check_health()
             
             print("\n✅ Press Ctrl+C to stop all services")

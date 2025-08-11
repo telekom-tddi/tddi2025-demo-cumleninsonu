@@ -56,7 +56,7 @@ If a function call is needed, respond **ONLY** with the following JSON format. *
   }
 }
 
-If **no function call is needed**, respond with customer's language reply instead.
+If **no function call is needed**, respond with natural reply instead.
 
 Assume customer_id is either provided or must be asked from the customer if needed.
 
@@ -73,7 +73,7 @@ Assistant:
   }
 }
 
-"""
+If the user asks general questions or FAQs, answer naturally. Only call functions when user-specific data or action is required."""
 
 class CustomStoppingCriteria(StoppingCriteria):
     """Custom stopping criteria for text generation."""
@@ -355,6 +355,7 @@ class CallCenterLLMManager:
         logger.info(f"=== CALL CENTER LLM REQUEST ===")
         logger.info(f"QUERY: {query}")
         logger.info(f"PROMPT LENGTH: {len(prompt)} chars")
+        logger.info(f"PROMPT: {prompt}")
         logger.info(f"GENERATION PARAMETERS:")
         logger.info(f"  - MAX_NEW_TOKENS: {max_length}")
         logger.info(f"  - TEMPERATURE: {temperature}")
@@ -522,27 +523,35 @@ class CallCenterLLMManager:
         logger.info("Generating natural language response from function results")
         
         # Build function results context
-        function_context = "Based on the following information retrieved from our systems:\n\n"
-        
+        function_context_parts = []
         for result in function_results:
             func_name = result["function"]
             func_result = result["result"]
             
             if func_result["success"] and func_result["data"]:
-                function_context += f"• {func_name}: {json.dumps(func_result['data'], indent=2)}\n"
+                function_context_parts.append(f"• {func_name}: {json.dumps(func_result['data'], indent=2)}")
             elif not func_result["success"]:
-                function_context += f"• {func_name}: Error - {func_result['error']}\n"
+                function_context_parts.append(f"• {func_name}: Error - {func_result['error']}")
         
-        function_context += "\nPlease provide a helpful, natural response to the customer."
+        function_context = "\\n".join(function_context_parts)
         
         # Create new prompt for response generation
-        response_prompt = f"""You are a helpful call center agent. A customer asked: "{original_query}"
+        response_prompt = f"""You are a helpful and empathetic call center AI assistant. Your goal is to provide a clear and concise answer to the customer's query based *only* on the information provided below.
 
+## Customer's Original Question:
+"{original_query}"
+
+## Information from our Systems:
 {function_context}
 
-Respond naturally and helpfully to the customer using this information. Do not include any function calls in your response - just provide a clear, conversational answer.
+## Your Task:
+1. Synthesize the information above to answer the customer's question.
+2. Respond in a natural, conversational, and helpful tone.
+3. **Do not** mention that you are an AI or that you retrieved information from a system.
+4. **Do not** output any function calls or JSON.
+5. If the system returned an error or no data, politely inform the customer that you couldn't retrieve the information and suggest what they can do next (e.g., try again later, or check the information they provided).
 
-Respond in customer's language."""
+Please provide your response now:"""
         
         logger.debug(f"Function response prompt: {response_prompt}")
         

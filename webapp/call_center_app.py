@@ -5,17 +5,22 @@ from typing import Dict, Any
 import time
 import requests
 import json
+import io
+import hashlib
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
+from audiorecorder import audiorecorder
 
 from src.utils.config import (
     API_HOST,
     APP_TITLE,
     API_PORT,
-    APP_DESCRIPTION
+    APP_DESCRIPTION,
+    API_CONNECT_TIMEOUT,
+    API_READ_TIMEOUT,
 )
 
 logging.basicConfig(
@@ -24,12 +29,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-API_URL = f"https://{API_HOST}"
-if API_HOST == "localhost" or API_HOST == "0.0.0.0":
-    API_URL = f"http://{API_HOST}:{API_PORT}"
+resolved_host = "localhost" if API_HOST == "0.0.0.0" else API_HOST
+API_URL = f"https://{resolved_host}"
+if resolved_host == "localhost":
+    API_URL = f"http://{resolved_host}:{API_PORT}"
 
-DEFAULT_TEMPERATURE = 0.2
+DEFAULT_TEMPERATURE = 0.7
 DEFAULT_TOP_P = 0.9
+
+TTS_LANGUAGES = {
+    "English": "en",
+    "Turkish": "tr",
+    "Spanish": "es",
+    "German": "de",
+}
 
 def check_api_health() -> Dict[str, Any]:
     """Check the health of the call center API.
@@ -39,7 +52,10 @@ def check_api_health() -> Dict[str, Any]:
     """
     try:
         logger.info(f"Checking API health at {API_URL}/health")
-        response = requests.get(f"{API_URL}/health", timeout=5)
+        response = requests.get(
+            f"{API_URL}/health",
+            timeout=(API_CONNECT_TIMEOUT, min(API_READ_TIMEOUT, 10)),
+        )
         if response.status_code == 200:
             return response.json()
         else:
@@ -69,7 +85,10 @@ def get_available_functions() -> Dict[str, Any]:
     """
     try:
         logger.info(f"Getting available functions from {API_URL}/functions")
-        response = requests.get(f"{API_URL}/functions", timeout=5)
+        response = requests.get(
+            f"{API_URL}/functions",
+            timeout=(API_CONNECT_TIMEOUT, min(API_READ_TIMEOUT, 10)),
+        )
         if response.status_code == 200:
             return response.json()
         else:
@@ -78,6 +97,59 @@ def get_available_functions() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error getting functions: {e}")
         return {"functions": {}}
+
+def transcribe_audio(audio_bytes: bytes) -> str:
+    """Send audio to the STT API and get the transcript.
+    
+    Args:
+        audio_bytes: The audio data to transcribe.
+        
+    Returns:
+        The transcribed text.
+    """
+    try:
+        stt_lang = st.session_state.get("stt_language", "tr")
+        logger.info(f"Sending audio for transcription with language: {stt_lang}")
+        files = {"audio_file": ("audio.wav", audio_bytes, "audio/wav")}
+        params = {"language": stt_lang}
+        response = requests.post(f"{API_URL}/stt", files=files, params=params, timeout=(API_CONNECT_TIMEOUT, API_READ_TIMEOUT))
+        if response.status_code == 200:
+            return response.json().get("text", "")
+        else:
+            logger.error(f"STT API failed with status code {response.status_code}")
+            return ""
+    except Exception as e:
+        logger.error(f"Error transcribing audio: {e}")
+        return ""
+
+def text_to_speech(text: str, language: str | None = None) -> bytes:
+    """Send text to the TTS API and get the speech audio.
+    
+    Args:
+        text: The text to convert to speech.
+        language: Optional language code (e.g., 'en', 'tr')
+        
+    Returns:
+        The audio data in bytes.
+    """
+    try:
+        final_language = language or st.session_state.get("tts_language", "tr")
+        logger.info(f"Sending text for speech synthesis with language {final_language}: '{text[:50]}...'")
+        payload = {"text": text, "language": final_language}
+        response = requests.post(
+            f"{API_URL}/tts",
+            json=payload,
+            timeout=(API_CONNECT_TIMEOUT, API_READ_TIMEOUT),
+            stream=True
+        )
+        if response.status_code == 200:
+            return response.content
+        else:
+            logger.error(f"TTS API failed with status code {response.status_code}")
+            return None
+    except Exception as e:
+        logger.error(f"Error synthesizing speech: {e}")
+        return None
 
 def send_chat_message(
     query: str,
@@ -117,7 +189,7 @@ def send_chat_message(
         response = requests.post(
             f"{API_URL}/chat",
             json=payload,
-            timeout=30
+            timeout=(API_CONNECT_TIMEOUT, API_READ_TIMEOUT),
         )
         
         if response.status_code == 200:
@@ -152,6 +224,19 @@ def initialize_session_state():
     
     if "customer_id" not in st.session_state:
         st.session_state.customer_id = ""
+
+    if "auto_tts" not in st.session_state:
+        st.session_state.auto_tts = False
+
+    if "tts_language" not in st.session_state:
+        st.session_state.tts_language = "tr" 
+    
+    if "stt_language" not in st.session_state:
+        st.session_state.stt_language = "tr"
+    
+    # Audio handling state
+    if "last_audio_hash" not in st.session_state:
+        st.session_state.last_audio_hash = None
 
 def render_function_calls(function_calls: list):
     """Render function calls in an expandable section.
@@ -210,10 +295,30 @@ def render_chat_message(message: Dict[str, Any], is_user: bool):
             if "elapsed_time" in message:
                 st.caption(f"Response time: {message['elapsed_time']:.2f} seconds")
 
+            # Speak button per message with better feedback
+            speak_col, status_col = st.columns([1, 8])
+            with speak_col:
+                message_hash = abs(hash(message['text'][:100]))  # Use first 100 chars for hash
+                if st.button("🔊", key=f"speak_{message_hash}", help="Speak this message"):
+                    with st.spinner("🔊 Generating audio..."):
+                        audio_response = text_to_speech(message["text"], language=st.session_state.get("tts_language"))
+                        if audio_response:
+                            render_audio_playback(audio_response)
+                            with status_col:
+                                st.success("✅ Audio generated", icon="🔊")
+                        else:
+                            with status_col:
+                                st.error("❌ Audio generation failed", icon="🔊")
+
 def render_chat_history():
     """Render the chat history."""
     for message in st.session_state.chat_history:
         render_chat_message(message, message["role"] == "user")
+
+def render_audio_playback(audio_bytes: bytes):
+    """Render an audio player for the given audio bytes."""
+    if audio_bytes:
+        st.audio(audio_bytes, format="audio/mp3")
 
 def render_health_info():
     """Render API health information."""
@@ -301,6 +406,56 @@ def render_settings():
         step=0.1,
         help="Controls diversity of response generation"
     )
+
+    st.sidebar.markdown("### Audio Settings")
+    auto_tts = st.sidebar.toggle("Auto speak assistant replies", value=st.session_state.auto_tts, help="Automatically convert assistant responses to speech")
+    
+    # TTS Language Selection
+    current_lang_keys = list(TTS_LANGUAGES.keys())
+    current_tts_lang = st.session_state.get("tts_language", "tr")
+    current_tts_index = 0
+    for i, lang_key in enumerate(current_lang_keys):
+        if TTS_LANGUAGES[lang_key] == current_tts_lang:
+            current_tts_index = i
+            break
+    
+    tts_lang_label = st.sidebar.selectbox("TTS Language (Sesli okuma dili)", current_lang_keys, index=current_tts_index, help="Language for text-to-speech conversion")
+    st.session_state.auto_tts = auto_tts
+    st.session_state.tts_language = TTS_LANGUAGES[tts_lang_label]
+    
+    # STT Language Selection  
+    current_stt_lang = st.session_state.get("stt_language", "tr")
+    current_stt_index = 0
+    for i, lang_key in enumerate(current_lang_keys):
+        if TTS_LANGUAGES[lang_key] == current_stt_lang:
+            current_stt_index = i
+            break
+    
+    stt_lang_label = st.sidebar.selectbox("STT Language (Ses tanıma dili)", current_lang_keys, index=current_stt_index, help="Language for speech-to-text recognition")
+    st.session_state.stt_language = TTS_LANGUAGES[stt_lang_label]
+    
+    # Audio diagnostics
+    if st.sidebar.button("🔧 Test TTS"):
+        # Dile göre test metni
+        test_texts = {
+            "Turkish": "Merhaba! Bu Türkçe sesli okuma testidir.",
+            "English": "Hello! This is an English text-to-speech test.",
+            "Spanish": "¡Hola! Esta es una prueba de texto a voz en español.",
+            "German": "Hallo! Dies ist ein deutscher Text-zu-Sprache-Test."
+        }
+        test_text = test_texts.get(tts_lang_label, f"Test in {tts_lang_label}")
+        
+        with st.sidebar:
+            with st.spinner("Testing TTS..."):
+                test_audio = text_to_speech(test_text, language=st.session_state.tts_language)
+                if test_audio:
+                    st.success("✅ TTS working!")
+                    st.audio(test_audio, format="audio/mp3")
+                else:
+                    st.error("❌ TTS test failed")
+    
+    # STT Test bilgilendirmesi
+    st.sidebar.info("💡 STT test için: Mikrofon butonuna basıp konuşun")
     
     return {
         "temperature": temperature,
@@ -387,8 +542,32 @@ def main():
     # Render chat history
     render_chat_history()
     
+    # Audio recorder (mic button)
+    audio = audiorecorder("🎤 Click to record", "🔴 Recording...")
+    
+    # Handle audio input with better state management
+    audio_transcription = None
+    if audio and len(audio) > 0:
+        # Check if this is a new recording by comparing with previous state
+        audio_bytes_io = io.BytesIO()
+        audio.export(audio_bytes_io, format="wav")
+        new_audio_data = audio_bytes_io.getvalue()
+        
+        # Only process if this is new audio data
+        if ("last_audio_hash" not in st.session_state or 
+            hashlib.md5(new_audio_data).hexdigest() != st.session_state.get("last_audio_hash")):
+            
+            st.session_state.last_audio_hash = hashlib.md5(new_audio_data).hexdigest()
+            
+            with st.spinner("🎤 Transcribing audio..."):
+                audio_transcription = transcribe_audio(new_audio_data)
+                if audio_transcription:
+                    st.success(f"🎤 Transcribed: {audio_transcription[:100]}{'...' if len(audio_transcription) > 100 else ''}")
+                else:
+                    st.error("❌ Failed to transcribe audio. Please try again.")
+
     # Handle quick action or user input
-    user_query = quick_action_message or st.chat_input("Type your message here...")
+    user_query = quick_action_message or audio_transcription or st.chat_input("Type your message here...")
     
     # Process user input
     if user_query:
@@ -429,6 +608,38 @@ def main():
             
             # Show the response
             st.write(response["response"])
+
+            # Handle TTS - either auto or manual
+            tts_audio_content = None
+            if st.session_state.auto_tts:
+                payload_lang = st.session_state.tts_language
+                try:
+                    logger.info(f"Auto-TTS enabled, language={payload_lang}")
+                    tts_audio_content = text_to_speech(response["response"], language=payload_lang)
+                    if tts_audio_content:
+                        render_audio_playback(tts_audio_content)
+                        logger.info("Auto-TTS audio played successfully")
+                    else:
+                        logger.error("Auto-TTS failed to generate audio")
+                        st.warning("⚠️ Auto-TTS failed. Try using the speak button.")
+                except Exception as e:
+                    logger.error(f"Auto-TTS error: {e}")
+                    st.warning(f"⚠️ Auto-TTS error: {str(e)}")
+            
+            # Always show manual speak button (only if auto-TTS is off or failed)
+            if not st.session_state.auto_tts or not tts_audio_content:
+                speak_col, status_col = st.columns([1, 3])
+                with speak_col:
+                    if st.button("🔊 Speak reply", key=f"speak_latest_{int(time.time()*1000)}"):
+                        with st.spinner("🔊 Generating audio..."):
+                            manual_audio = text_to_speech(response["response"], language=st.session_state.get("tts_language"))
+                            if manual_audio:
+                                render_audio_playback(manual_audio)
+                                with status_col:
+                                    st.success("✅ Audio generated successfully")
+                            else:
+                                with status_col:
+                                    st.error("❌ Failed to generate audio")
             
             # Show function calls if available
             if response.get("function_calls"):

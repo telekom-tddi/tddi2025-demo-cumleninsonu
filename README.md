@@ -1,180 +1,216 @@
-# Call Center Chatbot
+# Çağrı Merkezi Chatbotu
 
-An AI-powered call center assistant that uses function calling to handle customer service operations. This project provides intelligent customer support with automated functions for account management, billing, package changes, and technical support.
+Yapay zekâ destekli bu çağrı merkezi asistanı, konuşma bağlamına göre fonksiyon çağırma özelliğiyle müşteri hizmeti operasyonlarını otomatikleştirir. Hesap yönetimi, faturalandırma, paket değişiklikleri ve teknik destek gibi işlemleri akıllı şekilde yerine getirir. Bu proje Türkçe Doğal Dil İşleme Yarışması 2025 Senaryo Kategorisi için tasarlanmıştır.
 
-## Features
+## Özellikler
 
-- **Intelligent Function Calling**: Automatically executes customer service functions based on conversation context
-- **Customer Account Management**: Access customer information, billing status, and usage data
-- **Package Management**: Show available packages, get details, and initiate package changes
-- **Payment Processing**: Handle payment transactions and billing inquiries
-- **Support Ticket Creation**: Generate support tickets for complex issues
-- **Local LLM Integration**: Uses open-source language models for natural conversation
-- **Web Interface**: Interactive Streamlit-based chat interface
-- **FastAPI Backend**: Robust API for processing requests and managing functions
+- **Akıllı Fonksiyon Çağırma**: Sohbet bağlamına göre müşteri hizmeti fonksiyonlarını otomatik çalıştırır
+- **Müşteri Hesap Yönetimi**: Müşteri bilgileri, fatura durumu ve kullanım verilerine erişim
+- **Paket Yönetimi**: Mevcut paketleri listeleme, detayları gösterme ve paket değişikliği başlatma
+- **Ödeme İşlemleri**: Ödeme işlemleri ve fatura sorguları
+- **Destek Kaydı Oluşturma**: Karmaşık sorunlar için destek talebi açma
+- **LLM Entegrasyonu**: Doğal diyalog için açık kaynak dil modelleri
+- **Web Arayüzü**: Streamlit tabanlı etkileşimli sohbet arayüzü
+- **FastAPI Backend**: İstekleri işleyen ve fonksiyonları yöneten sağlam API
 
-## Project Structure
+## Proje Yapısı
 
 ```
 .
 ├── src/
-│   ├── functions/           # Call center function implementations
-│   │   ├── call_center_functions.py  # Mock customer service functions
-│   │   └── function_caller.py        # Function parsing and execution
-│   ├── models/              # LLM integration
-│   │   ├── call_center_llm.py        # Call center-specific LLM manager
+│   ├── functions/           # Çağrı merkezi fonksiyon implementasyonları
+│   │   ├── call_center_functions.py  # Örnek müşteri hizmetleri fonksiyonları
+│   │   └── function_caller.py        # Fonksiyon ayrıştırma ve yürütme
+│   ├── models/              # LLM entegrasyonu
+│   │   ├── call_center_llm.py        # Çağrı merkezine özel LLM yöneticisi
 │   ├── api/                 # FastAPI backend
-│   │   ├── call_center_api.py        # Call center API endpoints
-│   └── utils/               # Helper functions and configuration
+│   │   ├── call_center_api.py        # API uç noktaları
+│   ├── translator/                 # Çeviri modelleri
+│   │   ├── translator.py        # Çeviri modelleri ve fonksiyonları
+│   └── stt.py/               # Konuşmayı metne çevirme
+│   └── tts.py/               # Metini konuşmaya çevirme
+│   └── utils/    
 │       └── config.py
-├── webapp/                  # Streamlit web applications
-│   ├── call_center_app.py   # Call center chat interface
-├── run.py                   # To run project easily
-├── requirements.txt         # Project dependencies
-└── README.md               # Project documentation
+├── webapp/                  # Streamlit web uygulamaları
+│   ├── call_center_app.py   # Çağrı merkezi sohbet arayüzü
+├── run.py                   # Projeyi kolay başlatmak için
+├── requirements.txt         # Bağımlılıklar
+└── README.md                # Proje dokümantasyonu
 ```
 
-## Available Functions
+## Kullanılabilir Mock Fonksiyonlar
 
-The call center chatbot can execute the following functions:
+1. **get_customer_info(customer_id)** - Müşteri hesap bilgilerini getirir
+2. **get_available_packages()** - Tüm mevcut servis paketlerini gösterir
+3. **get_package_details(package_name)** - Belirli bir pakete dair detayları getirir
+4. **initiate_package_change(customer_id, new_package, effective_date)** - Müşterinin paketini değiştirir
+5. **check_billing_status(customer_id)** - Faturalandırma ve ödeme bilgilerini kontrol eder
+6. **process_payment(customer_id, amount, payment_method)** - Ödeme işlemi yapar
+7. **get_usage_summary(customer_id, period)** - Müşteri kullanım istatistiklerini getirir
+8. **create_support_ticket(customer_id, issue_type, description, priority)** - Destek kaydı oluşturur
 
-1. **get_customer_info(customer_id)** - Retrieve customer account information
-2. **get_available_packages()** - Show all available service packages
-3. **get_package_details(package_name)** - Get detailed information about a specific package
-4. **initiate_package_change(customer_id, new_package, effective_date)** - Change customer's service package
-5. **check_billing_status(customer_id)** - Check billing and payment information
-6. **process_payment(customer_id, amount, payment_method)** - Process customer payments
-7. **get_usage_summary(customer_id, period)** - Get usage statistics for a customer
-8. **create_support_ticket(customer_id, issue_type, description, priority)** - Create support tickets
-
-## Environment Variables 
+## Ortam Değişkenleri
 
 ```bash
-# API Settings
-API_HOST=0.0.0.0
+# API Ayarları
+API_HOST=0.0.0.0 # Ngrok entegrasyonunda public domain
 API_PORT=8000
 
-# Web App Settings
+# Web Uygulaması Ayarları
 WEBAPP_HOST=0.0.0.0
 WEBAPP_PORT=8501
 
-# LLM Model Settings
+# LLM Model Ayarları
 LLM_MODEL=mistralai/Mistral-7B-Instruct-v0.3
 
-# Hugging Face Settings
+# Hugging Face Ayarları
 HUGGINGFACE_TOKEN=your_huggingface_token_here
 
-# NGROK Settings (optional, for public access)
+# NGROK Ayarları (opsiyonel, genel erişim için)
 NGROK_AUTHTOKEN=your_ngrok_token_here
 ```
 
-## Local Setup
+## Kurulum (Yerel)
 
-1. Clone this repository:
+1. Depoyu klonlayın:
 ```bash
 git clone [repository-url]
 cd call-center-chatbot
 ```
 
-2. Create a virtual environment and activate it:
+2. Sanal ortam oluşturun ve aktifleştirin:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# macOS/Linux
+source venv/bin/activate
+# Windows
+venv\Scripts\activate
 ```
 
-3. Install dependencies:
+3. Bağımlılıkları yükleyin:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Set up environment variables (create a `.env` file with the variables above)
+4. Ortam değişkenlerini ayarlayın (yukarıdaki değişkenlerle bir `.env` dosyası oluşturun)
 
-5. Start the call center API:
+5. API’yi başlatın:
 ```bash
 python -m src.api.call_center_api
 ```
 
-6. Launch the Streamlit web interface:
+6. Streamlit arayüzünü açın:
 ```bash
 streamlit run webapp/call_center_app.py
 ```
 
-## Usage
+## Kullanım
 
-### Web Interface
+### Web Arayüzü
 
-1. Open the web interface at http://localhost:8501
-2. Enter a customer ID (e.g., `customer_001`) for personalized assistance
-3. Use quick action buttons or type natural language requests
-4. The assistant will automatically call appropriate functions based on your request
+1. http://localhost:8501 adresini açın
+2. Kişiselleştirme için bir müşteri ID’si girin (örn. `customer_001`)
+3. Hızlı işlem butonlarını kullanın veya doğal dilde talebinizi yazın
+4. Asistan talebinize göre uygun fonksiyonları otomatik çağıracaktır
 
-### Sample Interactions
+### Örnek Etkileşimler
 
-- **"Check my account information for customer_001"** → Calls `get_customer_info()`
-- **"What packages do you have available?"** → Calls `get_available_packages()`
-- **"I want to upgrade to the premium package"** → Calls `initiate_package_change()`
-- **"What's my current billing status?"** → Calls `check_billing_status()`
+- **"customer_001 için hesap bilgilerimi göster"** → `get_customer_info()` çağrılır
+- **"Hangi paketler mevcut?"** → `get_available_packages()` çağrılır
+- **"Premium pakete geçmek istiyorum"** → `initiate_package_change()` çağrılır
+- **"Güncel fatura durumum nedir?"** → `check_billing_status()` çağrılır
 
-### Test Customer Data
+### Test Müşteri Verisi
 
-The system includes sample customer data:
+- **customer_001** (John Doe): Premium, aktif hesap, borç yok
+- **customer_002** (Jane Smith): Basic, aktif hesap, $25.99 borç
+- **customer_003** (Bob Johnson): Standard, askıya alınmış hesap, $75.99 borç
 
-- **customer_001** (John Doe): Premium plan, active account, no outstanding balance
-- **customer_002** (Jane Smith): Basic plan, active account, $25.99 outstanding
-- **customer_003** (Bob Johnson): Standard plan, suspended account, $75.99 outstanding
+## API Uç Noktaları
 
-## API Endpoints
+- **Health Check**: `GET /health` - Sistem durumunu kontrol eder
+- **Chat**: `POST /chat` - Sohbete mesaj gönderir
+- **Functions**: `GET /functions` - Uygun fonksiyonları listeler
+- **Doğrudan Fonksiyon Çağrısı**: `POST /function/call` - Fonksiyonu direkt çalıştırır
+- **API Dokümantasyonu**: `/docs` - Etkileşimli API dokümanı
 
-- **Health Check**: `GET /health` - Check system status
-- **Chat**: `POST /chat` - Send message to the chatbot
-- **Functions**: `GET /functions` - List available functions
-- **Direct Function Call**: `POST /function/call` - Execute a function directly
-- **API Documentation**: `/docs` - Interactive API documentation
+## Colab Kurulumu
 
-## Colab Setup
-
-For running in Google Colab:
-
-1. Upload the project to Colab
-2. Install dependencies: `!pip install -r requirements.txt`
-3. Set environment variables:
+1. Projeyi Colab’e yükleyin
+2. Bağımlılıkları yükleyin: `!pip install -r requirements.txt`
+3. Ortam değişkenlerini ayarlayın:
 ```python
 import os
 os.environ["HUGGINGFACE_TOKEN"] = "your_token"
-os.environ["NGROK_AUTHTOKEN"] = "your_ngrok_token"  # optional
+os.environ["NGROK_AUTHTOKEN"] = "your_ngrok_token"  # opsiyonel
 ```
-4. Run the API: `!python -m src.api.call_center_api`
+4. API’yi çalıştırın: `!python -m src.api.call_center_api`
 
-## Customization
+## Özelleştirme
 
-- **Add New Functions**: Implement new functions in `src/functions/call_center_functions.py`
-- **Modify Customer Data**: Update the `MOCK_CUSTOMERS` dictionary
-- **Change LLM Model**: Update the `LLM_MODEL` environment variable
-- **Customize UI**: Modify the Streamlit interface in `webapp/call_center_app.py`
-- **Adjust Function Parsing**: Update patterns in `src/functions/function_caller.py`
+- **Yeni Fonksiyon Ekleme**: `src/functions/call_center_functions.py`
+- **Müşteri Verisi**: `MOCK_CUSTOMERS` sözlüğünü güncelleyin
+- **LLM Modeli**: `LLM_MODEL` ortam değişkenini değiştirin
+- **UI Özelleştirme**: `webapp/call_center_app.py`
+- **Fonksiyon Ayrıştırma**: `src/functions/function_caller.py`
 
-## Screenshots
+## Ekran Görüntüleri
 
-### Call Center Interface
+- `ScreenShots/call-center-1.png`
+- `ScreenShots/call-center-2.png`
+- `ScreenShots/call-center-3.png`
 
-The following screenshots demonstrate the call center chatbot interface in action:
+---
 
-#### Example 1
-![Call Center Interface](ScreenShots/call-center-1.png)
+## İyileştirmeler ve Yol Haritası
 
-#### Example 2
-![Customer Service Functions](ScreenShots/call-center-2.png)
+- Ürün ve Deneyim (UX)
+  - Sık işlemler için yönlendirmeli akışlar (fatura itirazı, paket yükseltme, arıza bildirimi)
+  - Sohbet içinde doğrulamalı, argüman toplayan mini formlar
+  - Çok turlu slot doldurma ve netleştirme soruları
+  - Sohbet özetleri ve takip mesajları
+- Ses ve Gerçek Zamanlılık
+  - Düşük gecikmeli WebRTC tabanlı ses akışı
+  - SSML desteği, vurgu kontrolü, çoklu ses kütüphanesi
+  - VAD (konuşma etkinliği algılama) ve konuşmacı ayrımı
+- LLM ve Fonksiyon Çağırma
+  - Araç (tool) seçimi akıl yürütme ve otomatik yeniden deneme (retry)
+  - Fonksiyon sonuçlarının doğrulanması ve kendi kendini onarma
+  - Kullanılan modellerin optimizasyonu için senaryo verilerimiz ile modellere ince ayar yapmak
+- Bilgi ve RAG implementasyonu
+  - Kurumsal bilgi tabanı (SSS, politikalar, ürün dokümanları) entegrasyonu
+  - Semantik filtreleme
+  - Yanıtlarda atıf ve kaynak bağlama
+- Kalite ve Değerlendirme
+  - Niyet başına sentetik test setleri; referans sohbetler
+  - Araç çağırma doğruluğu için otomatik regresyon testleri
+  - Kullanıcı geri bildirimi (like/dislike) ve hata etiketleme
+- Gözlemlenebilirlik
+  - İzleme (OpenTelemetry), gecikme/hata panelleri
+  - Prompt kayıtları, fonksiyon çağrı metrikleri, TTS/STT süreleri
+- Performans ve Maliyet
+  - Niyet/uzunluğa göre model seçim politikası
+  - Yanıt önbelleği ve fonksiyon çağrısı belleklemesi
+  - Uygun yerlerde mixed-precision ve batching
+- Çok Dilli
+  - Türkçe’ye özel ayarlı LLM ve akustik modeller
+  - Otomatik dil algılama ve kullanıcı üstüne yazma
+  - Yerelleştirme
+  - Senaryo verileri ile modellere ince ayar yaparak LLM verimini arttırma
+- Güvenlik ve Uyum
+  - Oran sınırlama (rate limiting) ve kötüye kullanım önleme
+- Dağıtım
+  - API ve WebApp için Docker imajları; CI/CD boru hattı
+  - Konfigürasyon profilleri (dev/stage/prod)
+  - Sağlık kontrolleri ve otomatik ölçekleme politikaları
+- Test
+  - Araçlar ve uç noktalar için birim/entegrasyon testleri
+  - Streamlit akışları için headless tarayıcı ile Uçtan Uca (E2E) testler
+  - Yoğun saatler için yük testleri
 
-#### Example 3
-![Customer Service Functions](ScreenShots/call-center-3.png)
+---
+## Lisans
 
+Bu proje, [Apache 2.0](./LICENSE) lisansı altında lisanslanmıştır.
 
-These screenshots show the interactive web interface where customers can chat with the AI assistant, and the system automatically executes relevant functions based on customer requests.
-
-# TODO LIST
-
-- Improve functions and promping for better execution
-- Add TTS and STT for better user experience
-- Turkish support for usage (Currently responding with same as prompt's language but not good as in English. Using LLM's fine-tuned in Turkish would fix this)
-- RAG implementation with real data if necessary 
-- Improve Chain-Of-Thought process
+Açıkça başka bir şekilde belirtmedikçe, sizin tarafınızdan bu projeye dahil edilmek üzere kasıtlı olarak gönderilen her katkı, Apache-2.0 lisansında tanımlandığı şekilde yukarıdaki lisans ile, herhangi bir ek hüküm veya koşul olmaksızın lisanslanacaktır.

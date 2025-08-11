@@ -2,7 +2,6 @@ import logging
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from transformers import load_tf_weights_in_gpt2
 
 _BASE_DIR_FOR_DOTENV = Path(__file__).resolve().parent.parent.parent
 dotenv_path = _BASE_DIR_FOR_DOTENV / '.env'
@@ -19,33 +18,11 @@ else:
 
 # Project directories
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DATA_DIR = os.path.join(BASE_DIR, "data")
-RAW_DATA_DIR = os.path.join(DATA_DIR, "raw")
-PROCESSED_DATA_DIR = os.path.join(DATA_DIR, "processed")
-VECTOR_DB_DIR = os.path.join(DATA_DIR, "vectordb")
 
-# Text preprocessing settings
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
-ENCODING_MODEL = "cl100k_base"  # For OpenAI-like tokenizers
 
-# Embedding settings
-EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-EMBEDDING_DIMENSION = 384
-
-# Vector database settings
-VECTOR_DB_TYPE = "chroma"
-DISTANCE_METRIC = "cosine"
-
-# Retrieval settings
-TOP_K_RESULTS = 3
-SIMILARITY_THRESHOLD = 0.2
 
 # LLM settings
 DEFAULT_LLM_MODEL = os.getenv("LLM_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
-SYSTEM_PROMPT = """You are a helpful assistant that provides accurate information based on the given context. 
-If the answer cannot be found in the context, simply state that you don't have enough information. 
-Do not make up information. Always cite your sources."""
 
 # Call Center settings
 CALL_CENTER_MODE = True  # Flag to enable call center mode
@@ -53,6 +30,10 @@ CALL_CENTER_MODE = True  # Flag to enable call center mode
 # API settings
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
+
+# Client request timeout settings (used by webapp when calling API)
+API_CONNECT_TIMEOUT = int(os.getenv("API_CONNECT_TIMEOUT", "5"))
+API_READ_TIMEOUT = int(os.getenv("API_READ_TIMEOUT", "120"))
 
 # Web app settings
 WEBAPP_HOST = os.getenv("WEBAPP_HOST", "0.0.0.0")
@@ -63,3 +44,9 @@ APP_DESCRIPTION = "AI-powered call center assistant for customer service and sup
 # Cache settings
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 MAX_CACHE_SIZE = 100  # Number of queries to cache
+
+# Hugging Face cache settings
+# Set environment variables for better caching behavior
+os.environ.setdefault("HF_HUB_CACHE", CACHE_DIR)
+os.environ.setdefault("TRANSFORMERS_CACHE", CACHE_DIR)
+os.environ.setdefault("HF_HOME", CACHE_DIR)
