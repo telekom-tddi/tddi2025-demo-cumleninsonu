@@ -287,8 +287,7 @@ def remove_markdown_characters(text: str) -> str:
         # Then, remove the list markers from the beginning of lines, like * text
         line = re.sub(r'^\s*\*\s+', '', line)
         cleaned_lines.append(line)
-            
-    return '\n'.join(cleaned_lines)
+    return '\n'.join(cleaned_lines).replace('$', 'TL')
 def render_chat_message(message: Dict[str, Any], is_user: bool):
     """Render a chat message.
     

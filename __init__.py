@@ -1,3 +1,3 @@
 """
-RAG Q&A System package.
+Arama Merkezi Asistanı.
 """ 
