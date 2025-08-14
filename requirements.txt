@@ -1,14 +1,36 @@
+--extra-index-url https://download.pytorch.org/whl/cu124
+# Core libraries
+langchain>=0.3.25
+langchain-community>=0.0.13
+tqdm>=4.66.0
+
+# LLM libraries
+transformers>=4.36.0
+torch==2.6.0+cu124
+accelerate>=0.25.0
+sentencepiece>=0.1.99
+
 # API and Web Interface
+fastapi>=0.109.0
 uvicorn>=0.27.0
 streamlit>=1.31.0
 pydantic>=2.6.0
 watchfiles>=1.0.5
+pyngrok>=7.2.9
 
 # Utilities
 python-dotenv>=1.0.0
 numpy>=1.24.0,<2.0
+pandas>=2.1.0
 sacremoses>=0.1.1
 psutil>=7.0.0
 
 # Audio Processing
+gTTS>=2.3.2
+openai-whisper>=20250625
+pydub>=0.25.1
+soundfile>=0.12.1
+librosa>=0.10.1
 streamlit-audiorecorder>=0.0.6
+python-multipart>=0.0.20
+pyttsx3>=2.99  # Optional: for offline TTS fallback
