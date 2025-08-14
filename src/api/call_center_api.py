@@ -41,7 +41,11 @@ from src.utils.config import (
     CALL_CENTER_MODE
 )
 
-# Configure logging
+
+for handler in logging.root.handlers[:]:
+    print(handler)
+    logging.root.removeHandler(handler)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -130,6 +134,19 @@ class SpeechToTextResponse(BaseModel):
     confidence: Optional[float] = Field(None, description="Confidence score for transcription")
     detected_language: Optional[str] = Field(None, description="Detected language of the audio")
     segments: Optional[List[Dict[str, Any]]] = Field(None, description="Detailed transcription segments")
+
+class TranslateRequest(BaseModel):
+    """Request model for the translate endpoint."""
+    text: str = Field(..., description="Text to be translated")
+    source_lang: str = Field("tr", description="Source language of the text")
+    target_lang: str = Field("en", description="Target language for translation")
+
+class TranslateResponse(BaseModel):
+    """Response model for the translate endpoint."""
+    translated_text: str = Field(..., description="The translated text")
+    original_text: str = Field(..., description="The original text")
+    source_lang: str = Field(..., description="Source language")
+    target_lang: str = Field(..., description="Target language")
 
 class ChatResponse(BaseModel):
     """Response model for the chat endpoint."""
@@ -288,6 +305,31 @@ async def speech_to_text(audio_file: UploadFile = File(...), language: str = "tr
             except:
                 pass
         raise HTTPException(status_code=500, detail=f"Error in STT: {str(e)}")
+@app.post("/translate", response_model=TranslateResponse)
+async def translate_text(request: TranslateRequest):
+    """Translate text from a source language to a target language."""
+    try:
+        translator = get_translator()
+        
+        if request.source_lang == "tr" and request.target_lang == "en":
+            translated_text = translator.translate_tr_to_en(request.text)
+        elif request.source_lang == "en" and request.target_lang == "tr":
+            translated_text = translator.translate_en_to_tr(request.text)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported translation direction. Only 'tr' to 'en' and 'en' to 'tr' are supported."
+            )
+        
+        return {
+            "translated_text": translated_text,
+            "original_text": request.text,
+            "source_lang": request.source_lang,
+            "target_lang": request.target_lang
+        }
+    except Exception as e:
+        logger.error(f"Error in translation endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Error in translation: {str(e)}")
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
