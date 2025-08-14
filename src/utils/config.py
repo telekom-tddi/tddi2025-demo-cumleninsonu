@@ -38,8 +38,8 @@ API_READ_TIMEOUT = int(os.getenv("API_READ_TIMEOUT", "120"))
 # Web app settings
 WEBAPP_HOST = os.getenv("WEBAPP_HOST", "0.0.0.0")
 WEBAPP_PORT = int(os.getenv("WEBAPP_PORT", "8501"))
-APP_TITLE = "Call Center Chatbot"
-APP_DESCRIPTION = "AI-powered call center assistant for customer service and support"
+APP_TITLE = "Arama Merkezi Asistanı"
+APP_DESCRIPTION = "AI destekli çağrı merkezi asistanı, müşteri hizmetleri ve destek için."
 
 # Cache settings
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")

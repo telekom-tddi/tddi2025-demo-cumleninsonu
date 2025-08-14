@@ -212,7 +212,7 @@ def send_chat_message(
         }
 
 def initialize_session_state():
-    """Initialize the session state."""
+    """seansı  başlat"""
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
@@ -264,11 +264,11 @@ def render_function_calls(function_calls: list):
             if result:
                 success = result.get("success", False)
                 if success:
-                    st.markdown("**Result:** ✅ Success")
+                    st.markdown("**Sonuç:** ✅ başarılı")
                     if result.get("data"):
                         st.json(result["data"])
                 else:
-                    st.markdown("**Result:** ❌ Error")
+                    st.markdown("**Sonuç:** ❌ hata")
                     st.error(result.get("error", "Unknown error"))
             
             if i < len(function_calls) - 1:
@@ -299,29 +299,29 @@ def render_chat_message(message: Dict[str, Any], is_user: bool):
             speak_col, status_col = st.columns([1, 8])
             with speak_col:
                 message_hash = abs(hash(message['text'][:100]))  # Use first 100 chars for hash
-                if st.button("🔊", key=f"speak_{message_hash}", help="Speak this message"):
-                    with st.spinner("🔊 Generating audio..."):
+                if st.button("🔊", key=f"speak_{message_hash}", help="Konuş"):
+                    with st.spinner("🔊Ses oluşturuluyor..."):
                         audio_response = text_to_speech(message["text"], language=st.session_state.get("tts_language"))
                         if audio_response:
                             render_audio_playback(audio_response)
                             with status_col:
-                                st.success("✅ Audio generated", icon="🔊")
+                                st.success("✅ Ses üretildi", icon="🔊")
                         else:
                             with status_col:
-                                st.error("❌ Audio generation failed", icon="🔊")
+                                st.error("❌ Ses üretimi başarısız oldu", icon="🔊")
 
 def render_chat_history():
-    """Render the chat history."""
+    """Konuşma geçmişinin işle."""
     for message in st.session_state.chat_history:
         render_chat_message(message, message["role"] == "user")
 
 def render_audio_playback(audio_bytes: bytes):
-    """Render an audio player for the given audio bytes."""
+    """ Verilmiş ses verilerinni oynatmak için ses oynatıcıyı işle."""
     if audio_bytes:
         st.audio(audio_bytes, format="audio/mp3")
 
 def render_health_info():
-    """Render API health information."""
+    """API durumunu öğren."""
     health = st.session_state.api_health
     status = health.get("status", "unknown")
     llm_ready = health.get("llm_ready", False)
@@ -335,24 +335,24 @@ def render_health_info():
     
     st.sidebar.markdown(
         f"""
-        ### System Status
-        API Status: :{status_color}[{status}]  
-        LLM: :{llm_color}[{'Ready' if llm_ready else 'Not Ready'}]  
-        Functions: :{function_color}[{'Ready' if function_caller_ready else 'Not Ready'}]  
-        Available Functions: {available_functions}  
+        ### sistem durumu
+        API durumu: :{status_color}[{status}]  
+        LLM: :{llm_color}[{'Hazır' if llm_ready else 'Hazır değil'}]  
+        Functions: :{function_color}[{'Hazır' if function_caller_ready else 'Hazır değil'}]  
+        Kulanılabilir fonksiyonlar: {available_functions}  
         Mode: {mode}
         """
     )
 
 def render_customer_info():
-    """Render customer information section."""
-    st.sidebar.markdown("### Customer Information")
+    """Müşteri bilgileri kısmını işle."""
+    st.sidebar.markdown("### Müşteri Bilgileri")
     
     customer_id = st.sidebar.text_input(
-        "Customer ID",
+        "Müşteri ID",
         value=st.session_state.customer_id,
-        placeholder="e.g., customer_001",
-        help="Enter customer ID for personalized assistance"
+        placeholder="örn., customer_001",
+        help=" Kişiseleştrilimiş yardım için müşteri ID girin"
     )
     
     if customer_id != st.session_state.customer_id:
@@ -360,21 +360,21 @@ def render_customer_info():
     
     # Show sample customer IDs
     st.sidebar.markdown("""
-    **Sample Customer IDs:**
+    **Örnek müşteri ID'leri:**
     - customer_001 (John Doe - Premium)
     - customer_002 (Jane Smith - Basic)  
     - customer_003 (Bob Johnson - Standard)
     """)
 
 def render_available_functions():
-    """Render available functions information."""
+    """ Kulanılabilir fonksiyonları işle."""
     functions = st.session_state.available_functions.get("functions", {})
     
     if functions:
-        with st.sidebar.expander("🔧 Available Functions", expanded=False):
+        with st.sidebar.expander("Kulanılabilir fonksiyonlar", expanded=False):
             for func_name, func_info in functions.items():
                 st.markdown(f"**{func_name}**")
-                st.caption(func_info.get("description", "No description"))
+                st.caption(func_info.get("açıklama", "açıklama yok"))
                 
                 # Show parameters
                 parameters = func_info.get("parameters", {})
@@ -386,16 +386,16 @@ def render_available_functions():
                 st.markdown("---")
 
 def render_settings():
-    """Render settings controls."""
-    st.sidebar.markdown("### Generation Settings")
+    """Kontrol ayarlarını işle."""
+    st.sidebar.markdown("### Yapay zeka çıktı ayarları")
     
     temperature = st.sidebar.slider(
-        "Temperature",
+        "Rastgelelik (Temperature)",
         min_value=0.0,
         max_value=1.0,
         value=DEFAULT_TEMPERATURE,
         step=0.1,
-        help="Controls randomness in response generation"
+        help="verilen cevabın rastgeleliliğini kontrol eder "
     )
     
     top_p = st.sidebar.slider(
@@ -404,11 +404,11 @@ def render_settings():
         max_value=1.0,
         value=DEFAULT_TOP_P,
         step=0.1,
-        help="Controls diversity of response generation"
+        help="Yanıt üretimindeki çeşitliliği kontrol eder"
     )
 
-    st.sidebar.markdown("### Audio Settings")
-    auto_tts = st.sidebar.toggle("Auto speak assistant replies", value=st.session_state.auto_tts, help="Automatically convert assistant responses to speech")
+    st.sidebar.markdown("### Ses ayarları")
+    auto_tts = st.sidebar.toggle(" Sesle cevap verme", value=st.session_state.auto_tts, help="Ses asistanı  direkt olarak sesli cevap verir")
     
     # TTS Language Selection
     current_lang_keys = list(TTS_LANGUAGES.keys())
@@ -419,7 +419,7 @@ def render_settings():
             current_tts_index = i
             break
     
-    tts_lang_label = st.sidebar.selectbox("TTS Language (Sesli okuma dili)", current_lang_keys, index=current_tts_index, help="Language for text-to-speech conversion")
+    tts_lang_label = st.sidebar.selectbox("Sesli okuma dili", current_lang_keys, index=current_tts_index, help="Yazıdan konuşmaya çevirme dili")
     st.session_state.auto_tts = auto_tts
     st.session_state.tts_language = TTS_LANGUAGES[tts_lang_label]
     
@@ -431,11 +431,11 @@ def render_settings():
             current_stt_index = i
             break
     
-    stt_lang_label = st.sidebar.selectbox("STT Language (Ses tanıma dili)", current_lang_keys, index=current_stt_index, help="Language for speech-to-text recognition")
+    stt_lang_label = st.sidebar.selectbox("Ses tanıma dili", current_lang_keys, index=current_stt_index, help="Konuşmadan yazıya çevirme dili")
     st.session_state.stt_language = TTS_LANGUAGES[stt_lang_label]
     
     # Audio diagnostics
-    if st.sidebar.button("🔧 Test TTS"):
+    if st.sidebar.button("🔧 TTS'i test et"):
         # Dile göre test metni
         test_texts = {
             "Turkish": "Merhaba! Bu Türkçe sesli okuma testidir.",
@@ -446,13 +446,13 @@ def render_settings():
         test_text = test_texts.get(tts_lang_label, f"Test in {tts_lang_label}")
         
         with st.sidebar:
-            with st.spinner("Testing TTS..."):
+            with st.spinner(" TTS test ediliyor..."):
                 test_audio = text_to_speech(test_text, language=st.session_state.tts_language)
                 if test_audio:
-                    st.success("✅ TTS working!")
+                    st.success("✅ TTS çalışıyor!")
                     st.audio(test_audio, format="audio/mp3")
                 else:
-                    st.error("❌ TTS test failed")
+                    st.error("❌ TTS test başarısız oldu")
     
     # STT Test bilgilendirmesi
     st.sidebar.info("💡 STT test için: Mikrofon butonuna basıp konuşun")
@@ -463,8 +463,8 @@ def render_settings():
     }
 
 def render_sidebar():
-    """Render the sidebar."""
-    st.sidebar.title("Call Center Assistant")
+    """Yan paneli işe."""
+    st.sidebar.title("Arama Merkezi Asistanı")
     st.sidebar.info(APP_DESCRIPTION)
     
     render_health_info()
@@ -472,47 +472,47 @@ def render_sidebar():
     render_available_functions()
     settings = render_settings()
     
-    if st.sidebar.button("🔄 Refresh Status"):
+    if st.sidebar.button("🔄 Durumu yenile"):
         st.session_state.api_health = check_api_health()
         st.session_state.available_functions = get_available_functions()
         st.rerun()
     
-    if st.sidebar.button("🗑️ Clear Chat History"):
+    if st.sidebar.button("🗑️ Konuşma geçmişini temizle"):
         st.session_state.chat_history = []
         st.rerun()
     
     return settings
 
 def render_quick_actions():
-    """Render quick action buttons."""
-    st.markdown("### 🚀 Quick Actions")
+    """Hızlı eylem düğmelerini işle."""
+    st.markdown("### 🚀 Hızlı eylemler")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("📋 Check My Account"):
+        if st.button("📋 Hesabımı kontrol  eder misin?"):
             if st.session_state.customer_id:
-                quick_message = f"Can you show me my account information for customer {st.session_state.customer_id}?"
+                quick_message = f"Hesap bilgilerimi  bana gösterir misin {st.session_state.customer_id}?"
             else:
-                quick_message = "Can you show me account information? My customer ID is customer_001"
+                quick_message = "Hesap bilgisini bana gösterebilir misin? Benim müşteri ID'im customer_001"
             return quick_message
     
     with col2:
-        if st.button("📦 Available Packages"):
-            return "What packages do you have available?"
+        if st.button("📦 Kulanılabilir paketler"):
+            return "Hangi paketler kulanılabilir?"
     
     with col3:
-        if st.button("💳 Check Billing"):
+        if st.button("💳 Fatura durumunu göster"):
             if st.session_state.customer_id:
-                quick_message = f"Can you check my billing status for customer {st.session_state.customer_id}?"
+                quick_message = f"müşteri {st.session_state.customer_id} içimn fatura durmunu gösterir misin?"
             else:
-                quick_message = "Can you check my billing status? My customer ID is customer_001"
+                quick_message = "fatura durumumu gösteririr misin? Benim müşteri ID'im customer_001"
             return quick_message
     
     return None
 
 def main():
-    """Main entry point for the Streamlit app."""
+    """Streamlit uygulaması için Ana giriş noktası."""
     # Set page config
     st.set_page_config(
         page_title=APP_TITLE,
@@ -526,14 +526,14 @@ def main():
     
     # Render the title
     st.title(f"{APP_TITLE} 📞")
-    st.markdown("*AI-powered customer service assistant with intelligent function calling*")
+    st.markdown("*Yapay zeka destekli müşteri hizmetleri asistanı, akıllı fonksiyon çağrıları ile*")
     
     # Render the sidebar and get settings
     settings = render_sidebar()
     
     # Check if API is healthy
     if st.session_state.api_health.get("status") != "ok":
-        st.error("⚠️ API is not responding. Please check the backend service.")
+        st.error("⚠️ API yanıt vermiyor. Lütfen backendi kontrol edin.")
         st.stop()
     
     # Render quick actions
@@ -543,7 +543,7 @@ def main():
     render_chat_history()
     
     # Audio recorder (mic button)
-    audio = audiorecorder("🎤 Click to record", "🔴 Recording...")
+    audio = audiorecorder("🎤 Ses kaydı için tıklayın", "🔴 Kaydediliyor...")
     
     # Handle audio input with better state management
     audio_transcription = None
@@ -559,15 +559,15 @@ def main():
             
             st.session_state.last_audio_hash = hashlib.md5(new_audio_data).hexdigest()
             
-            with st.spinner("🎤 Transcribing audio..."):
+            with st.spinner("🎤 Ses transkribe ediliyor..."):
                 audio_transcription = transcribe_audio(new_audio_data)
                 if audio_transcription:
-                    st.success(f"🎤 Transcribed: {audio_transcription[:100]}{'...' if len(audio_transcription) > 100 else ''}")
+                    st.success(f"🎤 Transkribe edildi: {audio_transcription[:100]}{'...' if len(audio_transcription) > 100 else ''}")
                 else:
-                    st.error("❌ Failed to transcribe audio. Please try again.")
+                    st.error("❌ Ses transkribe edilirken başarısız oldu. Lütfen tekrar deneyiniz.")
 
     # Handle quick action or user input
-    user_query = quick_action_message or audio_transcription or st.chat_input("Type your message here...")
+    user_query = quick_action_message or audio_transcription or st.chat_input("Lütfen mesajınızı buraya yazın...")
     
     # Process user input
     if user_query:
@@ -583,7 +583,7 @@ def main():
         # Display thinking message
         with st.chat_message("assistant"):
             thinking_placeholder = st.empty()
-            thinking_placeholder.markdown("_Processing your request..._")
+            thinking_placeholder.markdown("_isteğiniz işleniyor..._")
             
             # Prepare conversation history for API
             conversation_history = []
@@ -630,16 +630,16 @@ def main():
             if not st.session_state.auto_tts or not tts_audio_content:
                 speak_col, status_col = st.columns([1, 3])
                 with speak_col:
-                    if st.button("🔊 Speak reply", key=f"speak_latest_{int(time.time()*1000)}"):
-                        with st.spinner("🔊 Generating audio..."):
+                    if st.button("🔊 Sesli cevap", key=f"speak_latest_{int(time.time()*1000)}"):
+                        with st.spinner("🔊 Ses oluşturuyor..."):
                             manual_audio = text_to_speech(response["response"], language=st.session_state.get("tts_language"))
                             if manual_audio:
                                 render_audio_playback(manual_audio)
                                 with status_col:
-                                    st.success("✅ Audio generated successfully")
+                                    st.success("✅ Ses başarıyla oluşturuldu", icon="🔊")
                             else:
                                 with status_col:
-                                    st.error("❌ Failed to generate audio")
+                                    st.error("❌ Ses oluşturma başarısız oldu", icon="🔊")
             
             # Show function calls if available
             if response.get("function_calls"):

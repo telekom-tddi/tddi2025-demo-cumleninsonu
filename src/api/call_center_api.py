@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
 # Initialize the FastAPI app
 app = FastAPI(
     title="Call Center Chatbot API",
-    description="API for AI-powered call center chatbot with function calling",
+    description="AI ile desteklenen çağrı merkezi chatbot API'si.",
     version="0.1.0",
     lifespan=lifespan
 )
