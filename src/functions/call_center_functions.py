@@ -298,7 +298,7 @@ def initiate_package_change(customer_id: str, new_package: str, effective_date: 
         }
     
     # Generate change request
-    if effective_date is "":
+    if effective_date == "":
         effective_date = customer["next_billing_date"]
     
     change_request = {

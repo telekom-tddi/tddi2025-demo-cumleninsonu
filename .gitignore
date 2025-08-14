@@ -148,3 +148,5 @@ credentials.json # example
 # Local data and secrets
 data/vectordb/
 .env
+
+gemma.py

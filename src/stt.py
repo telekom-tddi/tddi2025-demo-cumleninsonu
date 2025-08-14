@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class SpeechToTextService:
     """Service for converting speech to text with improved memory handling and confidence scoring."""
 
-    def __init__(self, model_name: str = "base", device: str = None, language: str = "tr", 
+    def __init__(self, model_name: str = "medium", device: str = None, language: str = "tr", 
                  enable_vad: bool = True, chunk_length: int = 30):
         """
         Initialize the STT service.

@@ -76,7 +76,7 @@ def get_tts_service():
 @lru_cache(maxsize=1)
 def get_stt_service():
     """Get or initialize the Speech-to-Text service."""
-    return SpeechToTextService()
+    return SpeechToTextService(model_name="medium", language="tr")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
