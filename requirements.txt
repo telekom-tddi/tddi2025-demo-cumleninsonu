@@ -34,3 +34,4 @@ librosa>=0.10.1
 streamlit-audiorecorder>=0.0.6
 python-multipart>=0.0.20
 pyttsx3>=2.99  # Optional: for offline TTS fallback
+google-genai>=1.30.0

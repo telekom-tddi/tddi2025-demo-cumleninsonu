@@ -26,7 +26,6 @@ class Translator:
     def __init__(
         self,
         model_en_tr: str = "Helsinki-NLP/opus-mt-tc-big-en-tr",
-        model_tr_en: str = "Helsinki-NLP/opus-mt-tc-big-tr-en",
         cache_dir: str = "./cache",
         device: str = None
     ):
@@ -47,12 +46,6 @@ class Translator:
         self.pipe_en_to_tr = self._initialize_pipeline(
             model_en_tr,
             "translation_en_to_tr"
-        )
-        
-        logger.info("Initializing Turkish to English model...")
-        self.pipe_tr_to_en = self._initialize_pipeline(
-            model_tr_en,
-            "translation_tr_to_en"
         )
     def _initialize_pipeline(self, model_name: str, task: str):
         """Initialize a translation pipeline."""
@@ -102,7 +95,3 @@ class Translator:
     def translate_en_to_tr(self, text: str) -> str:
         """Translate English text to Turkish."""
         return self._translate(self.pipe_en_to_tr, text)
-
-    def translate_tr_to_en(self, text: str) -> str:
-        """Translate Turkish text to English."""
-        return self._translate(self.pipe_tr_to_en, text)

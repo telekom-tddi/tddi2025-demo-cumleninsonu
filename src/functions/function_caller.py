@@ -42,9 +42,9 @@ class FunctionCaller:
         Parse function calls from LLM response text.
         
         Looks for patterns like:
-        - { "function_name(param1=\"value1\")" } (Incomplete JSON - missing value)
-        - { "FUNCTION_CALL": [ "function_name(param1=\"value1\")" ] } (JSON array format)
         - { "function_call": { "name": "function_name", "parameters": {...} } } (Structured JSON)
+        - { "FUNCTION_CALL": [ "function_name(param1=\"value1\")" ] } (JSON array format)
+        - { "function_name(param1=\"value1\")" } (Incomplete JSON - missing value)
         - {"function_name(param1=\"value1\")"} (Simple JSON format)  
         - FUNCTION_CALL: function_name(param1="value1", param2="value2")
         - [CALL] function_name {"param1": "value1", "param2": "value2"}
@@ -56,67 +56,25 @@ class FunctionCaller:
             List of parsed function calls
         """
         function_calls = []
+        original_text = text
         
-        # Pattern 0a: Handle invalid JSON format: { "function_name(params)" } (missing value)
-        # Only match if it's exactly this format - no colons or other structure
-        incomplete_json_pattern = r'^\{\s*"(\w+\([^)]*\))"\s*\}$'
-        match = re.match(incomplete_json_pattern, text.strip())
-        if match:
-            func_call_str = match.group(1)
-            # Parse the function call string
-            func_match = re.match(r'(\w+)\((.*?)\)', func_call_str)
-            if func_match:
-                func_name, params_str = func_match.groups()
-                params = self._parse_parameters(params_str)
-                function_calls.append({
-                    "function": func_name,
-                    "parameters": params
-                })
-                logger.debug(f"Parsed incomplete JSON function call: {func_name} with params: {params}")
-                logger.info(f"Parsed {len(function_calls)} function calls from incomplete JSON format")
-                return function_calls
+        # First, extract potential JSON blocks from text (handling markdown code blocks)
+        json_candidates = self._extract_json_blocks(text)
         
-        # Pattern 0b: New JSON format { "FUNCTION_CALL": [ "function_name(param1=\"value1\")" ] }
-        try:
-            # First try to parse the entire text as JSON
-            if text.strip().startswith('{') and text.strip().endswith('}'):
-                logger.debug(f"Attempting to parse JSON: {text.strip()}")
-                json_data = json.loads(text.strip())
+        # Try to parse each JSON candidate
+        for json_text in json_candidates:
+            logger.debug(f"Trying to parse JSON candidate: {json_text}")
+            
+            try:
+                json_data = json.loads(json_text)
                 logger.debug(f"Successfully parsed JSON with keys: {list(json_data.keys())}")
                 
-                # Format 1: { "FUNCTION_CALL": [ "function_name(params)" ] }
-                if "FUNCTION_CALL" in json_data:
-                    func_list = json_data["FUNCTION_CALL"]
-                    if isinstance(func_list, list):
-                        for func_call_str in func_list:
-                            # Parse each function call string like "function_name(param1=\"value1\")"
-                            match = re.match(r'(\w+)\((.*?)\)', func_call_str.strip())
-                            if match:
-                                func_name, params_str = match.groups()
-                                params = self._parse_parameters(params_str)
-                                function_calls.append({
-                                    "function": func_name,
-                                    "parameters": params
-                                })
-                                logger.debug(f"Parsed JSON format function call: {func_name} with params: {params}")
-                    elif isinstance(func_list, str):
-                        # Single function call as string
-                        match = re.match(r'(\w+)\((.*?)\)', func_list.strip())
-                        if match:
-                            func_name, params_str = match.groups()
-                            params = self._parse_parameters(params_str)
-                            function_calls.append({
-                                "function": func_name,
-                                "parameters": params
-                            })
-                            logger.debug(f"Parsed JSON format single function call: {func_name} with params: {params}")
-                
-                # Format 2: { "function_call": { "name": "function_name", "parameters": {...} } }
-                elif "function_call" in json_data:
+                # Format 1: { "function_call": { "name": "function_name", "parameters": {...} } }
+                if "function_call" in json_data:
                     logger.debug(f"Found 'function_call' key in JSON data")
                     func_call = json_data["function_call"]
                     logger.debug(f"Function call data: {func_call}")
-                    logger.debug(f"Function call type: {type(func_call)}")
+                    
                     if isinstance(func_call, dict):
                         func_name = func_call.get("name")
                         func_params = func_call.get("parameters", {})
@@ -126,7 +84,7 @@ class FunctionCaller:
                                 "function": func_name,
                                 "parameters": func_params if isinstance(func_params, dict) else {}
                             })
-                            logger.debug(f"Parsed structured JSON function call: {func_name} with params: {func_params}")
+                            logger.info(f"✅ Parsed structured JSON function call: {func_name} with params: {func_params}")
                         else:
                             logger.debug("No function name found in structured JSON")
                     elif isinstance(func_call, list):
@@ -141,7 +99,34 @@ class FunctionCaller:
                                         "function": func_name,
                                         "parameters": func_params if isinstance(func_params, dict) else {}
                                     })
-                                    logger.debug(f"Parsed structured JSON array function call: {func_name} with params: {func_params}")
+                                    logger.info(f"✅ Parsed structured JSON array function call: {func_name} with params: {func_params}")
+                
+                # Format 2: { "FUNCTION_CALL": [ "function_name(params)" ] }
+                elif "FUNCTION_CALL" in json_data:
+                    func_list = json_data["FUNCTION_CALL"]
+                    if isinstance(func_list, list):
+                        for func_call_str in func_list:
+                            # Parse each function call string like "function_name(param1=\"value1\")"
+                            match = re.match(r'(\w+)\((.*?)\)', func_call_str.strip())
+                            if match:
+                                func_name, params_str = match.groups()
+                                params = self._parse_parameters(params_str)
+                                function_calls.append({
+                                    "function": func_name,
+                                    "parameters": params
+                                })
+                                logger.info(f"✅ Parsed JSON format function call: {func_name} with params: {params}")
+                    elif isinstance(func_list, str):
+                        # Single function call as string
+                        match = re.match(r'(\w+)\((.*?)\)', func_list.strip())
+                        if match:
+                            func_name, params_str = match.groups()
+                            params = self._parse_parameters(params_str)
+                            function_calls.append({
+                                "function": func_name,
+                                "parameters": params
+                            })
+                            logger.info(f"✅ Parsed JSON format single function call: {func_name} with params: {params}")
                 
                 # Format 3: {"function_name(params)"} - simple JSON with function call as key
                 elif len(json_data) == 1:
@@ -155,24 +140,44 @@ class FunctionCaller:
                                 "function": func_name,
                                 "parameters": params
                             })
-                            logger.debug(f"Parsed simple JSON function call: {func_name} with params: {params}")
+                            logger.info(f"✅ Parsed simple JSON function call: {func_name} with params: {params}")
                             break
                 
-                # If we reach here, JSON was valid but didn't match any expected format
-                else:
-                    logger.debug(f"Valid JSON found but doesn't match any expected function call format. Keys: {list(json_data.keys())}")
-                    logger.debug(f"JSON data: {json_data}")
-        except json.JSONDecodeError as e:
-            logger.debug(f"Text is not valid JSON: {e}")
-        except Exception as e:
-            logger.debug(f"Error parsing JSON format: {e}")
+                # If we found function calls, break out of the loop
+                if function_calls:
+                    break
+                    
+            except json.JSONDecodeError as e:
+                logger.debug(f"JSON candidate is not valid JSON: {e}")
+                continue
+            except Exception as e:
+                logger.debug(f"Error parsing JSON candidate: {e}")
+                continue
         
         # If we found function calls in JSON format, return them
         if function_calls:
-            logger.info(f"Parsed {len(function_calls)} function calls from JSON format")
+            logger.info(f"🎉 Successfully parsed {len(function_calls)} function calls from JSON format")
             return function_calls
-        else:
-            logger.debug("No function calls found in JSON format, trying other patterns")
+        
+        # Fallback to other patterns if JSON parsing failed
+        logger.debug("No function calls found in JSON format, trying other patterns")
+        
+        # Pattern: Handle incomplete JSON format: { "function_name(params)" } (missing value)
+        incomplete_json_pattern = r'\{\s*"(\w+\([^)]*\))"\s*\}'
+        matches = re.findall(incomplete_json_pattern, text)
+        for func_call_str in matches:
+            func_match = re.match(r'(\w+)\((.*?)\)', func_call_str)
+            if func_match:
+                func_name, params_str = func_match.groups()
+                params = self._parse_parameters(params_str)
+                function_calls.append({
+                    "function": func_name,
+                    "parameters": params
+                })
+                logger.info(f"✅ Parsed incomplete JSON function call: {func_name} with params: {params}")
+        
+        if function_calls:
+            return function_calls
         
         # Pattern 1: FUNCTION_CALL: function_name(param1="value1", param2="value2")
         pattern1 = r'FUNCTION_CALL:\s*(\w+)\((.*?)\)'
@@ -186,7 +191,7 @@ class FunctionCaller:
                     "function": func_name,
                     "parameters": params
                 })
-                logger.debug(f"Parsed function call: {func_name} with params: {params}")
+                logger.info(f"✅ Parsed function call: {func_name} with params: {params}")
             except Exception as e:
                 logger.warning(f"Failed to parse parameters for {func_name}: {e}")
         
@@ -201,7 +206,7 @@ class FunctionCaller:
                     "function": func_name,
                     "parameters": params
                 })
-                logger.debug(f"Parsed JSON function call: {func_name} with params: {params}")
+                logger.info(f"✅ Parsed JSON function call: {func_name} with params: {params}")
             except Exception as e:
                 logger.warning(f"Failed to parse JSON parameters for {func_name}: {e}")
         
@@ -217,7 +222,7 @@ class FunctionCaller:
                     "function": func_name,
                     "parameters": params
                 })
-                logger.debug(f"Parsed XML function call: {func_name} with params: {params}")
+                logger.info(f"✅ Parsed XML function call: {func_name} with params: {params}")
             except:
                 # If JSON parsing fails, try parameter parsing
                 try:
@@ -226,11 +231,15 @@ class FunctionCaller:
                         "function": func_name,
                         "parameters": params
                     })
-                    logger.debug(f"Parsed XML function call with param parsing: {func_name} with params: {params}")
+                    logger.info(f"✅ Parsed XML function call with param parsing: {func_name} with params: {params}")
                 except Exception as e:
                     logger.warning(f"Failed to parse XML parameters for {func_name}: {e}")
         
-        logger.info(f"Parsed {len(function_calls)} function calls from text")
+        if function_calls:
+            logger.info(f"🎉 Successfully parsed {len(function_calls)} function calls from fallback patterns")
+        else:
+            logger.warning(f"❌ No function calls found in text: {text[:200]}...")
+        
         return function_calls
     
     def _parse_parameters(self, params_str: str) -> Dict[str, Any]:
@@ -276,6 +285,50 @@ class FunctionCaller:
                 params[key] = value
         
         return params
+    
+    def _extract_json_blocks(self, text: str) -> List[str]:
+        """
+        Extract potential JSON blocks from text.
+        
+        Handles cases where JSON might be:
+        - Surrounded by other text
+        - Within markdown code blocks
+        - Mixed with regular text
+        
+        Args:
+            text: Text to extract JSON from
+            
+        Returns:
+            List of potential JSON strings
+        """
+        json_candidates = []
+        
+        # First, try the entire text if it looks like JSON
+        stripped_text = text.strip()
+        if stripped_text.startswith('{') and stripped_text.endswith('}'):
+            json_candidates.append(stripped_text)
+        
+        # Extract JSON from markdown code blocks
+        code_block_pattern = r'```(?:json)?\s*(\{.*?\})\s*```'
+        code_blocks = re.findall(code_block_pattern, text, re.DOTALL)
+        json_candidates.extend(code_blocks)
+        
+        # Extract standalone JSON objects from text
+        json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+        json_matches = re.findall(json_pattern, text, re.DOTALL)
+        json_candidates.extend(json_matches)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_candidates = []
+        for candidate in json_candidates:
+            candidate_clean = candidate.strip()
+            if candidate_clean and candidate_clean not in seen:
+                seen.add(candidate_clean)
+                unique_candidates.append(candidate_clean)
+        
+        logger.debug(f"Extracted {len(unique_candidates)} JSON candidates from text")
+        return unique_candidates
     
     def execute_function(self, function_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -388,37 +441,53 @@ class FunctionCaller:
         Returns:
             Cleaned text
         """
-        # Remove incomplete JSON format first: { "function_name(params)" } (missing value)
-        incomplete_json_pattern = r'\{\s*"\w+\([^)]*\)"\s*\}'
-        if re.match(incomplete_json_pattern, text.strip()):
-            text = ""
-            return text.strip()
+        original_text = text
+        logger.debug(f"Cleaning text: {text[:100]}...")
         
-        # Remove JSON FUNCTION_CALL formats: { "FUNCTION_CALL": [ "..." ] } and {"function_name(params)"}
-        try:
-            if text.strip().startswith('{') and text.strip().endswith('}'):
-                json_data = json.loads(text.strip())
+        # First, extract and remove JSON blocks using the same method as parsing
+        json_candidates = self._extract_json_blocks(text)
+        
+        for json_candidate in json_candidates:
+            try:
+                json_data = json.loads(json_candidate)
                 
-                # Format 1: { "FUNCTION_CALL": [ "..." ] }
-                if "FUNCTION_CALL" in json_data:
-                    # This is a pure function call JSON, replace with empty string
-                    text = ""
+                # Check if this JSON contains function calls
+                is_function_call_json = False
                 
-                # Format 2: {"function_name(params)"} - simple JSON with function call as key
+                # Format 1: { "function_call": { "name": "...", "parameters": {...} } }
+                if "function_call" in json_data:
+                    is_function_call_json = True
+                
+                # Format 2: { "FUNCTION_CALL": [ "..." ] }
+                elif "FUNCTION_CALL" in json_data:
+                    is_function_call_json = True
+                
+                # Format 3: {"function_name(params)"} - simple JSON with function call as key
                 elif len(json_data) == 1:
                     for key in json_data.keys():
-                        # Check if the key looks like a function call
                         if re.match(r'\w+\(.*?\)', key.strip()):
-                            # This is a pure function call JSON, replace with empty string
-                            text = ""
+                            is_function_call_json = True
                             break
                 
-                # Format 3: { "function_call": { "name": "function_name", "parameters": {...} } }
-                elif "function_call" in json_data:
-                    # This is a structured function call JSON, replace with empty string
-                    text = ""
-        except (json.JSONDecodeError, Exception):
-            pass
+                # If this is a function call JSON, remove it from text
+                if is_function_call_json:
+                    text = text.replace(json_candidate, "")
+                    logger.debug(f"Removed function call JSON: {json_candidate}")
+                    
+            except json.JSONDecodeError:
+                # If not valid JSON, check if it looks like incomplete JSON function call
+                incomplete_pattern = r'^\{\s*"\w+\([^)]*\)"\s*\}$'
+                if re.match(incomplete_pattern, json_candidate.strip()):
+                    text = text.replace(json_candidate, "")
+                    logger.debug(f"Removed incomplete function call JSON: {json_candidate}")
+            except Exception as e:
+                logger.debug(f"Error checking JSON candidate: {e}")
+        
+        # Remove markdown code blocks containing function calls
+        code_block_pattern = r'```(?:json)?\s*\{[^}]*"function_call"[^}]*\}\s*```'
+        text = re.sub(code_block_pattern, '', text, flags=re.DOTALL)
+        
+        # Remove other function call patterns
         
         # Remove FUNCTION_CALL patterns
         text = re.sub(r'FUNCTION_CALL:\s*\w+\([^)]*\)', '', text)
@@ -429,22 +498,13 @@ class FunctionCaller:
         # Remove XML-like function call patterns
         text = re.sub(r'<function_call>.*?</function_call>', '', text, flags=re.DOTALL | re.IGNORECASE)
         
-        # Remove JSON function call patterns (regex fallback)
-        text = re.sub(r'\{\s*"FUNCTION_CALL"\s*:\s*\[.*?\]\s*\}', '', text, flags=re.DOTALL)
-        
-        # Remove simple JSON function call patterns: {"function_name(params)"}
-        text = re.sub(r'\{\s*"\w+\([^)]*\)"\s*:\s*[^}]*\}', '', text, flags=re.DOTALL)
-        
-        # Remove incomplete JSON function call patterns: { "function_name(params)" } (missing value)
-        text = re.sub(r'\{\s*"\w+\([^)]*\)"\s*\}', '', text, flags=re.DOTALL)
-        
-        # Remove structured JSON function call patterns: { "function_call": { "name": "...", "parameters": {...} } }
-        # This regex handles nested braces for the parameters object
-        text = re.sub(r'\{\s*"function_call"\s*:\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\s*\}', '', text, flags=re.DOTALL)
-        
         # Clean up extra whitespace
-        text = re.sub(r'\n\s*\n', '\n', text)
+        text = re.sub(r'\n\s*\n+', '\n', text)
+        text = re.sub(r'^\s+|\s+$', '', text)  # Strip leading/trailing whitespace
         text = text.strip()
+        
+        if text != original_text:
+            logger.debug(f"Text cleaning complete. Original length: {len(original_text)}, cleaned length: {len(text)}")
         
         return text
     

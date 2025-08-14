@@ -29,7 +29,7 @@ MANIFEST
 
 *.manifest
 *.spec
-
+zt.py
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -148,5 +148,8 @@ credentials.json # example
 # Local data and secrets
 data/vectordb/
 .env
-
+test-env/
 gemma.py
+sorular.json
+quick_test.py
+function_accuracy_tester.py

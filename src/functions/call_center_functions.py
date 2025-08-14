@@ -187,7 +187,7 @@ AVAILABLE_PACKAGES = {
     }
 }
 
-def get_customer_info(customer_id: str) -> Dict[str, Any]:
+def get_customer_info(customer_id: str, *args, **kwargs) -> Dict[str, Any]:
     """
     Retrieve customer information by customer ID.
     
@@ -213,7 +213,7 @@ def get_customer_info(customer_id: str) -> Dict[str, Any]:
         "data": customer
     }
 
-def get_available_packages() -> Dict[str, Any]:
+def get_available_packages(*args, **kwargs) -> Dict[str, Any]:
     """
     Get all available service packages.
     
@@ -228,7 +228,7 @@ def get_available_packages() -> Dict[str, Any]:
         "data": AVAILABLE_PACKAGES
     }
 
-def get_package_details(package_name: str) -> Dict[str, Any]:
+def get_package_details(package_name: str, *args, **kwargs) -> Dict[str, Any]:
     """
     Get detailed information about a specific package.
     
@@ -254,7 +254,7 @@ def get_package_details(package_name: str) -> Dict[str, Any]:
         "data": package
     }
 
-def initiate_package_change(customer_id: str, new_package: str, effective_date: str = "") -> Dict[str, Any]:
+def initiate_package_change(customer_id: str, new_package: str, effective_date: str = "", *args, **kwargs) -> Dict[str, Any]:
     """
     Initiate a package change for a customer.
     
@@ -269,8 +269,9 @@ def initiate_package_change(customer_id: str, new_package: str, effective_date: 
     new_package = new_package.lower()
     new_package = new_package.replace("plan", "")
     new_package = new_package.strip()
+    if new_package == "standart":
+        new_package = "standard"
     logger.info(f"Initiating package change for customer {customer_id} to {new_package}")
-    
     # Check if customer exists
     if customer_id not in MOCK_CUSTOMERS:
         return {
@@ -278,7 +279,6 @@ def initiate_package_change(customer_id: str, new_package: str, effective_date: 
             "error": f"Customer {customer_id} not found",
             "data": None
         }
-    
     # Check if package exists
     if new_package not in AVAILABLE_PACKAGES:
         return {
@@ -319,7 +319,7 @@ def initiate_package_change(customer_id: str, new_package: str, effective_date: 
         "data": change_request
     }
 
-def check_billing_status(customer_id: str) -> Dict[str, Any]:
+def check_billing_status(customer_id: str, *args, **kwargs) -> Dict[str, Any]:
     """
     Check the billing status for a customer.
     
@@ -359,7 +359,7 @@ def check_billing_status(customer_id: str) -> Dict[str, Any]:
         "data": billing_info
     }
 
-def process_payment(customer_id: str, amount: float, payment_method: str = "credit_card") -> Dict[str, Any]:
+def process_payment(customer_id: str, amount: float, payment_method: str = "credit_card", *args, **kwargs) -> Dict[str, Any]:
     """
     Process a payment for a customer.
     
@@ -411,7 +411,7 @@ def process_payment(customer_id: str, amount: float, payment_method: str = "cred
         "data": payment_result
     }
 
-def get_usage_summary(customer_id: str, period: str = "current_month") -> Dict[str, Any]:
+def get_usage_summary(customer_id: str, period: str = "current_month", *args, **kwargs) -> Dict[str, Any]:
     """
     Get usage summary for a customer.
     
@@ -462,7 +462,7 @@ def get_usage_summary(customer_id: str, period: str = "current_month") -> Dict[s
         "data": usage_data
     }
 
-def create_support_ticket(customer_id: str, issue_type: str, description: str, priority: str = "medium") -> Dict[str, Any]:
+def create_support_ticket(customer_id: str, issue_type: str, description: str, priority: str = "medium", *args, **kwargs) -> Dict[str, Any]:
     """
     Create a support ticket for a customer.
     
@@ -509,26 +509,26 @@ def create_support_ticket(customer_id: str, issue_type: str, description: str, p
 FUNCTION_REGISTRY = {
     "get_customer_info": {
         "function": get_customer_info,
-        "description": "Get customer information by customer ID",
+        "description": "Kullanıcı bilgilerini gösterir",
         "parameters": {
             "customer_id": {"type": "string", "description": "Customer's unique identifier", "required": True}
         }
     },
     "get_available_packages": {
         "function": get_available_packages,
-        "description": "Get all available service packages",
+        "description": "Bütün mevcut paketleri gösterir",
         "parameters": {}
     },
     "get_package_details": {
         "function": get_package_details,
-        "description": "Get detailed information about a specific package",
+        "description": "Belirli bir paketin detaylarını gösterir",
         "parameters": {
             "package_name": {"type": "string", "description": "Name of the package", "required": True}
         }
     },
     "initiate_package_change": {
         "function": initiate_package_change,
-        "description": "Initiate a package change for a customer",
+        "description": "Kullanıcının paketini değiştirir",
         "parameters": {
             "customer_id": {"type": "string", "description": "Customer's unique identifier", "required": True},
             "new_package": {"type": "string", "description": "New package to switch to", "required": True},
@@ -537,14 +537,14 @@ FUNCTION_REGISTRY = {
     },
     "check_billing_status": {
         "function": check_billing_status,
-        "description": "Check billing status for a customer",
+        "description": "Kullanıcının fatura durumunu gösterir",
         "parameters": {
             "customer_id": {"type": "string", "description": "Customer's unique identifier", "required": True}
         }
     },
     "process_payment": {
         "function": process_payment,
-        "description": "Process a payment for a customer",
+        "description": "Kullanıcının ödemesini işler",
         "parameters": {
             "customer_id": {"type": "string", "description": "Customer's unique identifier", "required": True},
             "amount": {"type": "number", "description": "Payment amount", "required": True},
@@ -561,7 +561,7 @@ FUNCTION_REGISTRY = {
     },
     "create_support_ticket": {
         "function": create_support_ticket,
-        "description": "Create a support ticket for a customer",
+        "description": "Kullanıcı için destek bileti oluşturur",
         "parameters": {
             "customer_id": {"type": "string", "description": "Customer's unique identifier", "required": True},
             "issue_type": {"type": "string", "description": "Type of issue", "required": True},

@@ -17,6 +17,7 @@ sys.path.insert(0, BASE_DIR)
 
 # Filter out env directories for watchfiles
 ignore_dirs = [
+    "test-env",
     "venv",
     "rag_venv_clean",
     "data",
@@ -32,17 +33,17 @@ def setup_environment():
     print("✅ Cache directory created")
     
     # Check if required environment variables are set
-    required_vars = ["HUGGINGFACE_TOKEN"]
+    required_vars = ["GOOGLE_GENAI_API_KEY", "GOOGLE_API_KEY"]  # Either one is fine
     missing_vars = []
     
-    for var in required_vars:
-        if not os.getenv(var):
-            missing_vars.append(var)
+    # Check if at least one Google API key is set
+    if not os.getenv("GOOGLE_GENAI_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
+        missing_vars.append("GOOGLE_GENAI_API_KEY or GOOGLE_API_KEY")
     
     if missing_vars:
         print(f"⚠️  Warning: Missing environment variables: {', '.join(missing_vars)}")
         print("   Please set these in your .env file or environment")
-        print("   HUGGINGFACE_TOKEN is required for model access")
+        print("   GOOGLE_GENAI_API_KEY or GOOGLE_API_KEY is required for Google GenAI API access")
     else:
         print("✅ Environment variables configured")
 
@@ -111,7 +112,7 @@ def run_call_center_api():
     print("🚀 Starting Call Center API...")
     
     # Use uvicorn directly to run the call center API
-    cmd = ["uvicorn", "src.api.call_center_api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    cmd = ["uvicorn", "src.api.call_center_api:app", "--host", "0.0.0.0", "--port", "8000"]
     print(f"Running: {' '.join(cmd)}")
     return subprocess.Popen(cmd, env=dict(os.environ, PYTHONPATH=BASE_DIR))
 

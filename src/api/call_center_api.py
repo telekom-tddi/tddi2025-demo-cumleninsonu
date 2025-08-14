@@ -29,7 +29,6 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from src.models.call_center_llm import CallCenterLLMManager
 from src.functions.function_caller import FunctionCaller
 from src.translator.translator import Translator
 from src.tts import TextToSpeechService
@@ -38,7 +37,8 @@ from src.utils.config import (
     API_HOST,
     API_PORT,
     MAX_CACHE_SIZE,
-    CALL_CENTER_MODE
+    CALL_CENTER_MODE,
+    API_USAGE
 )
 
 
@@ -55,8 +55,13 @@ logger = logging.getLogger(__name__)
 # Initialize managers lazily
 @lru_cache(maxsize=1)
 def get_llm_manager():
-    """Get or initialize the call center LLM manager."""
-    return CallCenterLLMManager()
+    """Get or initialize the call center LLM manager with API."""
+    if API_USAGE:
+        from src.models.call_center_llm_with_api import CallCenterLLMManagerWithAPI
+        return CallCenterLLMManagerWithAPI()
+    else:
+        from src.models.call_center_llm import CallCenterLLMManager
+        return CallCenterLLMManager()
 
 @lru_cache(maxsize=1)
 def get_function_caller():
@@ -310,10 +315,7 @@ async def translate_text(request: TranslateRequest):
     """Translate text from a source language to a target language."""
     try:
         translator = get_translator()
-        
-        if request.source_lang == "tr" and request.target_lang == "en":
-            translated_text = translator.translate_tr_to_en(request.text)
-        elif request.source_lang == "en" and request.target_lang == "tr":
+        if request.source_lang == "en" and request.target_lang == "tr":
             translated_text = translator.translate_en_to_tr(request.text)
         else:
             raise HTTPException(
@@ -338,42 +340,20 @@ async def chat(request: ChatRequest):
     try:
         llm_manager = get_llm_manager()
         translator = get_translator()
-        isQueryTranslated = False
-        # Translate query to English if it's in Turkish
-        translated_query = translator.translate_tr_to_en(request.query)
-        if translated_query != request.query:
-            isQueryTranslated = True
-        
-        # Translate conversation history to English
-        translated_history = []
-        if request.conversation_history:
-            for message in request.conversation_history:
-                if message.get("role").lower() == "user":
-                    translated_content = translator.translate_tr_to_en(message["content"])
-                elif message.get("role").lower() == "assistant":
-                    translated_content = translator.translate_tr_to_en(message["content"])
-                else:
-                    translated_content = message["content"]
-                translated_history.append({"role": message["role"], "content": translated_content})
-
         if request.customer_id:
-            query = translated_query + " customer_id: " + request.customer_id
+            query = request.query + " customer_id: " + request.customer_id
         else:
-            query = translated_query
+            query = request.query
 
         response, function_results = llm_manager.generate_response(
             query=query,
-            conversation_history=translated_history,
+            conversation_history=request.conversation_history,
             temperature=request.temperature,
             top_p=request.top_p
         )
         
-        # Translate response back to Turkish
-        if isQueryTranslated:
-            final_response = translator.translate_en_to_tr(response)
-        else:
-            final_response = response
-        
+
+        final_response = translator.translate_en_to_tr(response)        
         elapsed_time = time.time() - start_time
         
         return {

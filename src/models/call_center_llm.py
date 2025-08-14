@@ -40,7 +40,7 @@ You have access to several functions that you can call to help customers:
 2. get_available_packages() - Show available service packages
 3. get_package_details(package_name) - Get details about a specific package
 4. initiate_package_change(customer_id, new_package, effective_date) - Change customer's package
-5. check_billing_status(customer_id) - Check billing and payment information
+5. check_billing_status(customer_id) - Check billing and payment information and monthly payments about the customer
 6. process_payment(customer_id, amount, payment_method) - Process a payment
 7. get_usage_summary(customer_id, period) - Get usage information
 8. create_support_ticket(customer_id, issue_type, description, priority) - Create a support ticket

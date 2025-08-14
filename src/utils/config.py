@@ -44,7 +44,8 @@ APP_DESCRIPTION = "AI destekli çağrı merkezi asistanı, müşteri hizmetleri 
 # Cache settings
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 MAX_CACHE_SIZE = 100  # Number of queries to cache
-
+API_USAGE = os.getenv("API_USAGE", "False") == "True"
+print(API_USAGE)
 # Hugging Face cache settings
 # Set environment variables for better caching behavior
 os.environ.setdefault("HF_HUB_CACHE", CACHE_DIR)

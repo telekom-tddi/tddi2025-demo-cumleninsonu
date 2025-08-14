@@ -7,6 +7,7 @@ import requests
 import json
 import io
 import hashlib
+import re
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -223,7 +224,7 @@ def initialize_session_state():
         st.session_state.available_functions = get_available_functions()
     
     if "customer_id" not in st.session_state:
-        st.session_state.customer_id = ""
+        st.session_state.customer_id = "customer_001"
 
     if "auto_tts" not in st.session_state:
         st.session_state.auto_tts = False
@@ -274,6 +275,20 @@ def render_function_calls(function_calls: list):
             if i < len(function_calls) - 1:
                 st.divider()
 
+def remove_markdown_characters(text: str) -> str:
+    """Strips markdown from a string, processing it line by line for plain text display."""
+    if not isinstance(text, str):
+        return text
+
+    cleaned_lines = []
+    for line in text.splitlines():
+        # First, remove bold styling from the text, like **text**
+        line = re.sub(r'\*\*(.*?)\*\*', r'\1', line)
+        # Then, remove the list markers from the beginning of lines, like * text
+        line = re.sub(r'^\s*\*\s+', '', line)
+        cleaned_lines.append(line)
+            
+    return '\n'.join(cleaned_lines)
 def render_chat_message(message: Dict[str, Any], is_user: bool):
     """Render a chat message.
     
@@ -282,10 +297,12 @@ def render_chat_message(message: Dict[str, Any], is_user: bool):
         is_user: Whether the message is from the user
     """
     if is_user:
+        # User input is already plain text, no need to clean
         st.chat_message("user").write(message["text"])
     else:
+        cleaned_text = remove_markdown_characters(message["text"])
         with st.chat_message("assistant"):
-            st.write(message["text"])
+            st.write(cleaned_text)
             
             # Show function calls if available
             if "function_calls" in message and message["function_calls"]:
@@ -361,9 +378,9 @@ def render_customer_info():
     # Show sample customer IDs
     st.sidebar.markdown("""
     **Örnek müşteri ID'leri:**
-    - customer_001 (John Doe - Premium)
-    - customer_002 (Jane Smith - Basic)  
-    - customer_003 (Bob Johnson - Standard)
+    - customer_001 (Seçkin - Premium)
+    - customer_002 (İsmail Efe - Basic)  
+    - customer_003 (Vehbi Berke - Standard)
     """)
 
 def render_available_functions():
@@ -374,7 +391,7 @@ def render_available_functions():
         with st.sidebar.expander("Kulanılabilir fonksiyonlar", expanded=False):
             for func_name, func_info in functions.items():
                 st.markdown(f"**{func_name}**")
-                st.caption(func_info.get("açıklama", "açıklama yok"))
+                st.caption(func_info.get("description", "açıklama yok"))
                 
                 # Show parameters
                 parameters = func_info.get("parameters", {})
@@ -483,6 +500,22 @@ def render_sidebar():
     
     return settings
 
+def render_new_chat_button():
+    """Render the new chat button in the upper right corner."""
+    # Create a container for the button positioned in upper right
+    button_container = st.container()
+    
+    with button_container:
+        # Use columns to position the button on the right
+        col1, col2, col3 = st.columns([6, 1, 1])
+        
+        with col3:
+            if st.button("💬 Yeni Sohbet", key="new_chat_btn", help="Yeni bir sohbet başlat"):
+                # Clear chat history and start fresh
+                st.session_state.chat_history = []
+                st.session_state.customer_id = "customer_001"
+                st.rerun()
+
 def render_quick_actions():
     """Hızlı eylem düğmelerini işle."""
     st.markdown("### 🚀 Hızlı eylemler")
@@ -492,7 +525,7 @@ def render_quick_actions():
     with col1:
         if st.button("📋 Hesabımı kontrol  eder misin?"):
             if st.session_state.customer_id:
-                quick_message = f"Hesap bilgilerimi  bana gösterir misin {st.session_state.customer_id}?"
+                quick_message = f"Hesap bilgilerimi bana gösterir misin {st.session_state.customer_id}?"
             else:
                 quick_message = "Hesap bilgisini bana gösterebilir misin? Benim müşteri ID'im customer_001"
             return quick_message
@@ -504,9 +537,9 @@ def render_quick_actions():
     with col3:
         if st.button("💳 Fatura durumunu göster"):
             if st.session_state.customer_id:
-                quick_message = f"müşteri {st.session_state.customer_id} içimn fatura durmunu gösterir misin?"
+                quick_message = f"Müşteri {st.session_state.customer_id} için fatura durumumu gösterir misin?"
             else:
-                quick_message = "fatura durumumu gösteririr misin? Benim müşteri ID'im customer_001"
+                quick_message = "Fatura durumumu gösteririr misin? Benim müşteri ID'im customer_001"
             return quick_message
     
     return None
@@ -521,8 +554,54 @@ def main():
         initial_sidebar_state="expanded"
     )
     
+    # Hide Streamlit deploy button and add custom styling
+    st.markdown("""
+    <style>
+    /* Hide the deploy button */
+    .stDeployButton {
+        display: none;
+    }
+    
+    /* Hide the "Made with Streamlit" footer */
+    footer {
+        visibility: hidden;
+    }
+    
+    /* Style the new chat button */
+    div[data-testid="column"]:last-child button[key="new_chat_btn"] {
+        background: linear-gradient(45deg, #FF6B6B, #4ECDC4) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 25px !important;
+        font-weight: bold !important;
+        padding: 0.5rem 1rem !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+        transition: all 0.3s ease !important;
+        margin-top: -3rem !important;
+        position: relative !important;
+        z-index: 1000 !important;
+    }
+    
+    div[data-testid="column"]:last-child button[key="new_chat_btn"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3) !important;
+        filter: brightness(1.1) !important;
+    }
+    
+    /* Make the button container float to the right */
+    div[data-testid="column"]:last-child {
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: flex-start !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Initialize session state
     initialize_session_state()
+    
+    # Render the new chat button in upper right
+    render_new_chat_button()
     
     # Render the title
     st.title(f"{APP_TITLE} 📞")
@@ -583,7 +662,7 @@ def main():
         # Display thinking message
         with st.chat_message("assistant"):
             thinking_placeholder = st.empty()
-            thinking_placeholder.markdown("_isteğiniz işleniyor..._")
+            thinking_placeholder.markdown("_İstek işleniyor..._")
             
             # Prepare conversation history for API
             conversation_history = []
@@ -607,7 +686,8 @@ def main():
             thinking_placeholder.empty()
             
             # Show the response
-            st.write(response["response"])
+            cleaned_response = remove_markdown_characters(response["response"])
+            st.write(cleaned_response)
 
             # Handle TTS - either auto or manual
             tts_audio_content = None
@@ -615,7 +695,7 @@ def main():
                 payload_lang = st.session_state.tts_language
                 try:
                     logger.info(f"Auto-TTS enabled, language={payload_lang}")
-                    tts_audio_content = text_to_speech(response["response"], language=payload_lang)
+                    tts_audio_content = text_to_speech(cleaned_response, language=payload_lang)
                     if tts_audio_content:
                         render_audio_playback(tts_audio_content)
                         logger.info("Auto-TTS audio played successfully")
@@ -632,7 +712,7 @@ def main():
                 with speak_col:
                     if st.button("🔊 Sesli cevap", key=f"speak_latest_{int(time.time()*1000)}"):
                         with st.spinner("🔊 Ses oluşturuyor..."):
-                            manual_audio = text_to_speech(response["response"], language=st.session_state.get("tts_language"))
+                            manual_audio = text_to_speech(cleaned_response, language=st.session_state.get("tts_language"))
                             if manual_audio:
                                 render_audio_playback(manual_audio)
                                 with status_col:
@@ -651,7 +731,7 @@ def main():
         # Add assistant message to chat history
         st.session_state.chat_history.append({
             "role": "assistant",
-            "text": response["response"],
+            "text": response["response"], # Keep original response in history
             "function_calls": response.get("function_calls", []),
             "elapsed_time": elapsed_time
         })
