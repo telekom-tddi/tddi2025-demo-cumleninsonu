@@ -1,7 +1,7 @@
 """
 Call Center LLM Manager with Google GenAI API
-API-based LLM manager for call center chatbot with function calling capabilities.
-Uses Google GenAI API for Gemma-3-27B-IT without local CUDA requirements.
+API-based Open Source LLM manager for call center chatbot with function calling capabilities.
+Uses Google GenAI API (which is free for non-commercial use and model is open source also) for Gemma-3-27B-IT without local CUDA requirements.
 """
 
 import os

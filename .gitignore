@@ -12,6 +12,7 @@ build/
 develop-eggs/
 piper_models/
 dist/
+piper_models/
 downloads/
 eggs/
 .eggs/

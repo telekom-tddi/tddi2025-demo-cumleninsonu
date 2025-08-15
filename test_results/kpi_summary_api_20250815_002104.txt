@@ -1,0 +1,87 @@
+
+========================================
+CALL CENTER CHATBOT KPI REPORT
+========================================
+Generated: 2025-08-15 00:21:04
+Model: gemma-3-27b-it
+Total Tests: 111
+
+OVERALL PERFORMANCE METRICS
+========================================
+✓ Function Detection Accuracy: 76.58%
+✓ Parameter Extraction Accuracy: 87.06%
+✓ Overall Success Rate: 76.58%
+✓ Average Response Time: 3.60s
+✓ Median Response Time: 3.89s
+
+RESPONSE TIME DISTRIBUTION
+========================================
+  < 1s: 0 tests (0.0%)
+  1-3s: 27 tests (24.3%)
+  3-5s: 77 tests (69.4%)
+  5-10s: 7 tests (6.3%)
+  > 10s: 0 tests (0.0%)
+
+FUNCTION-WISE BREAKDOWN
+========================================
+
+GET_CUSTOMER_INFO:
+  • Tests: 13
+  • Detection: 92.31%
+  • Avg Time: 3.61s
+  • Success: 92.31%
+
+GET_AVAILABLE_PACKAGES:
+  • Tests: 12
+  • Detection: 50.00%
+  • Avg Time: 3.57s
+  • Success: 50.00%
+
+INITIATE_PACKAGE_CHANGE:
+  • Tests: 13
+  • Detection: 84.62%
+  • Avg Time: 4.26s
+  • Success: 84.62%
+
+CHECK_BILLING_STATUS:
+  • Tests: 13
+  • Detection: 84.62%
+  • Avg Time: 3.56s
+  • Success: 84.62%
+
+PROCESS_PAYMENT:
+  • Tests: 11
+  • Detection: 100.00%
+  • Avg Time: 4.53s
+  • Success: 100.00%
+
+CREATE_SUPPORT_TICKET:
+  • Tests: 18
+  • Detection: 72.22%
+  • Avg Time: 4.54s
+  • Success: 72.22%
+
+GET_USAGE_SUMMARY:
+  • Tests: 12
+  • Detection: 100.00%
+  • Avg Time: 3.72s
+  • Success: 100.00%
+
+GET_PACKAGE_DETAILS:
+  • Tests: 12
+  • Detection: 16.67%
+  • Avg Time: 1.85s
+  • Success: 16.67%
+
+DON'T_KNOW:
+  • Tests: 7
+  • Detection: 100.00%
+  • Avg Time: 1.49s
+  • Success: 100.00%
+
+FAILURE ANALYSIS (26 failures)
+========================================
+  • Function Not Detected: 26 (100.0%)
+
+
+Detailed results saved to: test_results/kpi_report_api_20250815_002104.json

@@ -12,6 +12,7 @@ Yapay zekâ destekli bu çağrı merkezi asistanı, konuşma bağlamına göre f
 - **LLM Entegrasyonu**: Doğal diyalog için açık kaynak dil modelleri
 - **Web Arayüzü**: Streamlit tabanlı etkileşimli sohbet arayüzü
 - **FastAPI Backend**: İstekleri işleyen ve fonksiyonları yöneten sağlam API
+- **Kapsamlı Test Sistemi**: Fonksiyon çağırma doğruluğu ve performans ölçümü için KPI test sistemi
 
 ## Proje Yapısı
 
@@ -153,6 +154,77 @@ os.environ["NGROK_AUTHTOKEN"] = "your_ngrok_token"  # opsiyonel
 - **LLM Modeli**: `LLM_MODEL` ortam değişkenini değiştirin
 - **UI Özelleştirme**: `webapp/call_center_app.py`
 - **Fonksiyon Ayrıştırma**: `src/functions/function_caller.py`
+
+## Test ve Performans Değerlendirmesi
+
+### KPI Test Sistemi
+
+Proje, LLM'nin fonksiyon çağırma performansını ölçmek için kapsamlı bir test sistemi içerir. Test sistemi 111 adet Türkçe soru kullanarak 9 farklı kategoriyi değerlendirir:
+
+```bash
+# Tüm testleri çalıştırmak için:
+python test_call_center_kpis.py
+
+# Veya parametreli çalıştırma:
+python run_kpi_tests.py --use-api --sample-size 5
+
+# Google API anahtarını ayarlamayı unutmayın:
+export GOOGLE_GENAI_API_KEY="your_api_key_here"
+
+# Türkçe locale ayarları (opsiyonel ama önerilen):
+export LANG=tr_TR.UTF-8
+export LC_ALL=tr_TR.UTF-8
+```
+
+### Test Kategorileri ve Soru Sayıları
+
+- **get_customer_info**: 13 soru (müşteri bilgileri)
+- **get_available_packages**: 12 soru (paket listesi)
+- **initiate_package_change**: 13 soru (paket değişikliği)
+- **check_billing_status**: 13 soru (fatura durumu)
+- **process_payment**: 11 soru (ödeme işlemleri)
+- **create_support_ticket**: 18 soru (destek talepleri)
+- **get_usage_summary**: 12 soru (kullanım özeti)
+- **get_package_details**: 12 soru (paket detayları)
+- **don't_know**: 7 soru (fonksiyon çağrılmaması gereken durumlar)
+
+### Mevcut Performans Metrikleri (Gemma-3-27B-IT)
+
+Son test sonuçlarına göre:
+- **Toplam Test**: 111 soru
+- **Fonksiyon Tespit Doğruluğu**: %76.58
+- **Parametre Çıkarma Doğruluğu**: %87.06
+- **Genel Başarı Oranı**: %76.58
+- **Ortalama Yanıt Süresi**: 3.60 saniye
+- **Medyan Yanıt Süresi**: 3.89 saniye
+
+### Fonksiyon Bazında Performans:
+- **process_payment**: %100 başarı (ödeme işlemleri)
+- **get_usage_summary**: %100 başarı (kullanım özeti)
+- **don't_know**: %100 başarı (gereksiz fonksiyon çağrısı engelleme)
+- **get_customer_info**: %92.31 başarı (müşteri bilgileri)
+- **initiate_package_change**: %84.62 başarı (paket değişikliği)
+- **check_billing_status**: %84.62 başarı (fatura durumu)
+- **create_support_ticket**: %72.22 başarı (destek talepleri)
+- **get_available_packages**: %50.00 başarı (paket listesi)
+- **get_package_details**: %16.67 başarı (paket detayları)*
+
+*Not: Bazı fonksiyonlarda düşük performans, prompt optimizasyonu ve fine-tuning ile iyileştirilebilir.
+
+### Dil İşleme Uyarısı
+
+⚠️ **Kritik**: Sistem tamamen Türkçe sorularla eğitilmiş ve test edilmiştir. **Eğer LLM yanıtları İngilizce geliyorsa, dil işleme modülünde sapma meydana gelmiş demektir.** Bu durum sistem performansını ciddi şekilde etkiler.
+
+**Dil sapması tespit edildiğinde yapılacaklar:**
+1. Şu anki sürümde kısıtlı zaman nedeniyle dil tespiti yapamadık, open source dil çeviri modelini kullanarak sonucu sağlıyoruz
+2. Sonraki geliştirmelerimizde ile dil tespiti sağlayıp buna göre aksiyon sağlama (regenerate, dil çevirisini sağlama )
+
+### Test Raporları
+
+Test sonuçları otomatik olarak şu dosyalarda saklanır:
+- `test_results/kpi_report_api_[timestamp].json` - Detaylı JSON raporu
+- `test_results/kpi_results_api_[timestamp].xlsx` - Excel analiz dosyası
+- `test_results/kpi_summary_api_[timestamp].txt` - Özet metin raporu
 
 ## Ekran Görüntüleri
 

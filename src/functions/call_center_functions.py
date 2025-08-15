@@ -366,13 +366,15 @@ def process_payment(customer_id: str, amount: float, payment_method: str = "cred
     Args:
         customer_id: The customer's unique identifier
         amount: Payment amount
-        payment_method: Payment method (credit_card, debit_card, bank_transfer)
+        payment_method: Payment method (credit_card, debit_card, bank_transfer, bank_card)
         
     Returns:
         Dictionary containing payment processing results
     """
     logger.info(f"Processing payment of ${amount} for customer: {customer_id}")
-    
+    payment_method = payment_method.lower()
+    payment_method = payment_method.strip()
+    payment_method = payment_method.replace(" ", "_")
     if customer_id not in MOCK_CUSTOMERS:
         return {
             "success": False,
@@ -380,7 +382,7 @@ def process_payment(customer_id: str, amount: float, payment_method: str = "cred
             "data": None
         }
     
-    if amount <= 0:
+    if int(amount) <= 0:
         return {
             "success": False,
             "error": "Payment amount must be greater than 0",
