@@ -19,7 +19,6 @@ sys.path.insert(0, BASE_DIR)
 ignore_dirs = [
     "test-env",
     "venv",
-    "rag_venv_clean",
     "data",
     "__pycache__",
     ".git"

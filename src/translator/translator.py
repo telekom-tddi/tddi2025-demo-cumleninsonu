@@ -20,6 +20,13 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+tr_words = [
+    "kitap", "masa", "bilgisayar", "telefon", "kalem", "defter", "pencere", "kapı", "çanta", "gözlük",
+    "araba", "bisiklet", "tren", "uçak", "otobüs", "gemi", "yol", "köprü", "bahçe", "park",
+    "çiçek", "ağaç", "dağ", "deniz", "göl", "ırmak", "yağmur", "kar", "güneş", "bulut",
+    "yıldız", "ay", "gezegen", "ev", "oda", "mutfak", "banyo", "salon", "okul", "kütüphane",
+    "market", "mağaza", "restoran", "kafe", "sinema", "tiyatro", "müze", "stadyum", "oyun", "müzik", "merhaba", "nasıl", "yardımcı", "iyi"
+] # Improve this list in future works TODO
 
 class Translator:
     """Manager for handling translations between English and Turkish."""
@@ -183,4 +190,6 @@ class Translator:
         Returns:
             Translated Turkish text
         """
+        if any(word in text.lower() for word in tr_words):
+            return text
         return self._translate_with_chunking(self.pipe_en_to_tr, text, chunk_size)

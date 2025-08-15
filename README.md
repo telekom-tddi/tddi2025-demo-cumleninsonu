@@ -69,6 +69,8 @@ HUGGINGFACE_TOKEN=your_huggingface_token_here
 
 # NGROK Ayarları (opsiyonel, genel erişim için)
 NGROK_AUTHTOKEN=your_ngrok_token_here
+API_USAGE=True # İzin varsa tam bir bilgi alamadık ondan ikisi de çalışıyor ama API usage daha iyi bir test ortamı sağladığından onu kullanıyoruz
+GOOGLE_GENAI_API_KEY=your_genai_api_key # Kullanması ücretsiz open source modeli çalıştırmak için kullandık
 ```
 
 ## Kurulum (Yerel)
@@ -217,7 +219,7 @@ Son test sonuçlarına göre:
 
 **Dil sapması tespit edildiğinde yapılacaklar:**
 1. Şu anki sürümde kısıtlı zaman nedeniyle dil tespiti yapamadık, open source dil çeviri modelini kullanarak sonucu sağlıyoruz
-2. Sonraki geliştirmelerimizde ile dil tespiti sağlayıp buna göre aksiyon sağlama (regenerate, dil çevirisini sağlama )
+2. Sonraki geliştirmelerimiz ile dil tespiti sağlayıp buna göre aksiyon sağlama (regenerate, dil çevirisini sağlama )
 
 ### Test Raporları
 
